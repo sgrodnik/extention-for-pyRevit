@@ -3,6 +3,8 @@
 __title__ = 'Расчет\nТРН'
 __author__ = 'SG'
 
+import time
+startTime = time.time()
 import re
 import math
 import clr
@@ -15,672 +17,6 @@ doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
 
 k = 304.8
-
-def main():
-
-    # sel = uidoc.Selection.GetElementIds()
-    # els = [doc.GetElement(id) for id in sel]
-
-    elCirs = FilteredElementCollector(doc)\
-        .OfCategory(BuiltInCategory.OST_ElectricalCircuit)\
-        .WhereElementIsNotElementType().ToElements()
-
-    t = Transaction(doc, "Расчет ТРН")
-    t.Start()
-
-    for elCir in elCirs:
-        names = []
-        spaces = []
-        for el in list(elCir.Elements):
-            if el.LookupParameter('Наименование потребителя'):
-                if el.LookupParameter('Наименование потребителя').AsString():
-                    naim = el.LookupParameter('Наименование потребителя').AsString()
-                else:
-                    naim = el.Name
-            else:
-                naim = el.Name
-            if 'озетка' in naim:
-                naim = 'Розеточная сеть'
-            elif 'оробка' in naim:
-                naim = '(Коробка распределительная)'
-            names.append(naim)
-            space = el.Space[doc.GetElement(el.CreatedPhaseId)]
-            if space:
-                spaces.append(space.Number)
-            else:
-                spaces.append('-')
-        elCir.LookupParameter('Имя нагрузки').Set('; '.join(set(names)))
-        elCir.LookupParameter('Помещение нагрузки').Set('; '.join(natural_sorted(set(spaces))))
-
-    global counter
-    counter = 0
-    hcirs = [cir for cir in elCirs if 'Щит' in cir.BaseEquipment.Name]
-    global branches
-    branches = []
-    for cir in hcirs:
-        preBranch = []
-        find_longer_path(cir, preBranch)
-
-    for branch in branches:
-        name = branch[0].BaseEquipment.LookupParameter('Имя щита').AsString()
-        for cir in branch:
-            cir.LookupParameter('Имя щита').Set(name if name else '-')
-
-    panelsClusterBranches = {}
-    for branch in branches:
-        panel = branch[0].BaseEquipment.Id.IntegerValue
-        if panel not in panelsClusterBranches:
-            panelsClusterBranches[panel] = {}
-        clusterHead = branch[0].Id.IntegerValue
-        if clusterHead not in panelsClusterBranches[panel]:
-            panelsClusterBranches[panel][clusterHead] = []
-        panelsClusterBranches[panel][clusterHead].append(branch)
-
-    pcb = panelsClusterBranches
-
-    for panel in pcb.keys():
-        for clusterHead in pcb[panel].keys():
-            grNames = []
-            for branch in pcb[panel][clusterHead]:
-                for cir in branch:
-                    grNames.append(cir.LookupParameter('Номер группы').AsString())
-                    for el in list(cir.Elements):
-                        grNames.append(el.LookupParameter('Номер группы').AsString())
-            grNames = filter(lambda x: x != '', natural_sorted(list(set(grNames))))
-            if len(grNames) == 0:
-                actualName = '-'
-            elif len(grNames) > 1:
-                for name in grNames:
-                    if '!' in name:
-                        actualName = name
-                        break
-                    else:
-                        actualName = grNames[0]
-                actualName = actualName.replace('!', '')
-                print('Внимание! Номера групп {} заменены на {}'.format(', '.join(grNames), actualName))
-            else:
-                actualName = grNames[0]
-                actualName = actualName.replace('!', '')
-            for branch in pcb[panel][clusterHead]:
-                for cir in branch:
-                    cir.LookupParameter('Номер группы').Set(actualName)
-    for elCir in elCirs:
-        name = elCir.LookupParameter('Номер группы').AsString()
-        for elem in list(elCir.Elements):
-            elem.LookupParameter('Номер группы').Set(name)
-
-    for panel in pcb.keys():
-        for clusterHead in pcb[panel].keys():
-            cableNames = []
-            for branch in pcb[panel][clusterHead]:
-                for cir in branch:
-                    cableNames.append(cir.LookupParameter('Кабель').AsString())
-                    for el in list(cir.Elements):
-                        if el.LookupParameter('Кабель'):
-                            if el.LookupParameter('Кабель').AsString():
-                                cableNames.append(el.LookupParameter('Кабель').AsString())
-            cableNames = filter(lambda x: x != '', natural_sorted(list(set(cableNames))))
-            if len(cableNames) == 0:
-                cableNames = ['ВВГнг(А)-LSLTx']
-            if len(cableNames) > 1:
-                for name in cableNames:
-                    if '!' in name:
-                        actualName = name
-                        break
-                    else:
-                        actualName = cableNames[0]
-                actualName = actualName.replace('!', '')
-                print('Внимание! В группе {} кабели {} заменены на {}'.format(pcb[panel][clusterHead][0][0].LookupParameter('Номер группы').AsString(), ', '.join(cableNames), actualName))
-            else:
-                actualName = cableNames[0]
-                actualName = actualName.replace('!', '')
-            for branch in pcb[panel][clusterHead]:
-                for cir in branch:
-                    cir.LookupParameter('Кабель').Set(actualName)
-    for elCir in elCirs:
-        name = elCir.LookupParameter('Кабель').AsString()
-        for elem in list(elCir.Elements):
-            if elem.LookupParameter('Кабель'):
-                elem.LookupParameter('Кабель').Set(name)
-
-    # 'qf': 'Автоматический выключатель',
-    # 'QF': 'Автоматический выключатель 2P',
-    # 'QS': 'Выключатель',
-    # 'QFD': 'Дифф',
-    # 'KM': 'Контактор',
-    # 'FU': 'Плавкая вставка',
-    # 'QSU': 'Рубильник с плавкой вставкой',
-    # 'QD': 'УЗО'
-
-    for panel in pcb.keys():
-        for clusterHead in pcb[panel].keys():
-            cApps = []
-            for branch in pcb[panel][clusterHead]:
-                for cir in branch:
-                    cApps.append(cir.LookupParameter('Ком. аппарат').AsString())
-                    for el in list(cir.Elements):
-                        if el.LookupParameter('Ком. аппарат'):
-                            if el.LookupParameter('Ком. аппарат').AsString():
-                                cApps.append(el.LookupParameter('Ком. аппарат').AsString())
-                            elif 'IT сеть' in el.Name:
-                                cApps.append('QF')
-                            elif 'LED' in el.Name:
-                                cApps.append('qf')
-            cApps = filter(lambda x: x != '', natural_sorted(list(set(cApps))))
-            if len(cApps) == 0:
-                cApps = ['QFD']
-            if len(cApps) > 1:
-                for name in cApps:
-                    if '!' in name:
-                        actual = name
-                        break
-                    else:
-                        actual = cApps[0]
-                actual = actual.replace('!', '')
-                print('Внимание! В группе {} аппараты защиты {} заменены на {}'.format(pcb[panel][clusterHead][0][0].LookupParameter('Номер группы').AsString(), ', '.join(cApps), actual))
-            else:
-                actual = cApps[0]
-                actual = actual.replace('!', '')
-            for branch in pcb[panel][clusterHead]:
-                for cir in branch:
-                    cir.LookupParameter('Ком. аппарат').Set(actual)
-    for elCir in elCirs:
-        name = elCir.LookupParameter('Ком. аппарат').AsString()
-        for elem in list(elCir.Elements):
-            if elem.LookupParameter('Ком. аппарат'):
-                elem.LookupParameter('Ком. аппарат').Set(name)
-
-    panelsGroupsBranches = {}
-    for branch in branches:
-        panelName = branch[0].LookupParameter('Имя щита').AsString()
-        if panelName not in panelsGroupsBranches:
-            panelsGroupsBranches[panelName] = {}
-        groupName = branch[0].LookupParameter('Номер группы').AsString()
-        if groupName not in panelsGroupsBranches[panelName]:
-            panelsGroupsBranches[panelName][groupName] = []
-        panelsGroupsBranches[panelName][groupName].append(branch)
-
-
-    for elCir in elCirs:
-        # print(elCir)
-        arr = list(elCir.Elements)
-        # if arr[0].Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-        #     elCir.LookupParameter('Номер группы').Set(arr[0].LookupParameter('Номер группы').AsString())
-        # elif elCir.BaseEquipment.Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-        #     elCir.LookupParameter('Номер группы').Set(elCir.BaseEquipment.LookupParameter('Номер группы').AsString())
-        #     for i in arr:
-        #         i.LookupParameter('Номер группы').Set(elCir.BaseEquipment.LookupParameter('Номер группы').AsString())
-        # else:
-        #     elCir.LookupParameter('Номер группы').Set(arr[0].LookupParameter('Номер группы').AsString())
-
-        if len(arr) == 1:
-            if arr[0].LookupParameter('Установленная мощность'):
-                elCir.LookupParameter('Установленная мощность').Set(arr[0].LookupParameter('Установленная мощность').AsDouble())
-            elif doc.GetElement(arr[0].GetTypeId()).LookupParameter('Установленная мощность'):
-                elCir.LookupParameter('Установленная мощность').\
-                    Set(doc.GetElement(arr[0].GetTypeId()).LookupParameter('Установленная мощность').AsDouble())
-            else:
-                elCir.LookupParameter('Установленная мощность').Set(0)
-        elif len(arr) > 1:
-            lst = []
-            for i in arr:
-                if i.LookupParameter('Установленная мощность'):
-                    lst.append(i.LookupParameter('Установленная мощность').AsDouble())
-                    # print('1')
-                    # print(lst)
-                else:
-                    Type = doc.GetElement(i.GetTypeId())
-                    lst.append(Type.LookupParameter('Установленная мощность').AsDouble())
-                    # print('2')
-                    # print(lst)
-            elCir.LookupParameter('Установленная мощность').Set(sum(lst))
-
-    pgb = panelsGroupsBranches
-
-    for panel in pgb.keys():
-        for group in pgb[panel].keys():
-            power = 0
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    power += cir.LookupParameter('Установленная мощность').AsDouble()
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    cir.LookupParameter('Суммарная мощность группы').Set(power)
-
-    for panel in pgb.keys():
-        for group in pgb[panel].keys():
-            condition = False
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    for el in list(cir.Elements):
-                        if el.LookupParameter('Установленная мощность'):
-                            if el.LookupParameter('Установленная мощность').AsDouble() / 10763.9104167097 >= 3:
-                                condition = True
-                                break
-                        elif doc.GetElement(el.GetTypeId()).LookupParameter('Установленная мощность'):
-                            if doc.GetElement(el.GetTypeId()).LookupParameter('Установленная мощность').AsDouble() / 10763.9104167097 >= 3:
-                                condition = True
-                                break
-                    if condition: break
-            if condition: char = 'D'
-            else: char = 'C'
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    cir.LookupParameter('Характеристика аппарата защиты').Set(char)
-
-    # for group in groups:
-    #     condition = False
-    #     for cir in groups[group]:
-    #         for el in list(cir.Elements):
-    #             if el.LookupParameter('Установленная мощность'):
-    #                 if el.LookupParameter('Установленная мощность').AsDouble() / 10763.9104167097 >= 3:
-    #                     condition = True
-    #                     break
-    #             elif doc.GetElement(el.GetTypeId()).LookupParameter('Установленная мощность'):
-    #                 if doc.GetElement(el.GetTypeId()).LookupParameter('Установленная мощность').AsDouble() / 10763.9104167097 >= 3:
-    #                     condition = True
-    #                     break
-    #         if condition: break
-    #     if condition: char = 'D'
-    #     else: char = 'C'
-    #     for cir in groups[group]:
-    #         cir.LookupParameter('Характеристика аппарата защиты').Set(char)
-
-####################################
-    # d = {}
-    # groups = {}
-    # for elCir in elCirs: # ХУЕТА! Надо считать для разных щитов.
-    #     # print(d)
-    #     if elCir.LookupParameter('Номер группы').AsString() not in d:
-    #         d[elCir.LookupParameter('Номер группы').AsString()] = []
-    #         groups[elCir.LookupParameter('Номер группы').AsString()] = []
-    #     d[elCir.LookupParameter('Номер группы').AsString()].append(elCir.LookupParameter('Установленная мощность').AsDouble())
-    #     groups[elCir.LookupParameter('Номер группы').AsString()].append(elCir)
-    # sums = {}
-    # for i in d:
-    #     sums[i] = sum(d[i])
-    # for elCir in elCirs:
-    #     elCir.LookupParameter('Суммарная мощность группы').Set(sums[elCir.LookupParameter('Номер группы').AsString()])
-##################################
-    for elCir in elCirs:
-        arr = list(elCir.Elements)
-        if arr[0].Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-            ks = float(arr[0].LookupParameter('Коэффициент спроса').AsDouble())
-            elCir.LookupParameter('Коэффициент спроса').Set(ks if ks > 0 else 1)
-        elif elCir.BaseEquipment.Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-            ks = float(elCir.BaseEquipment.LookupParameter('Коэффициент спроса').AsDouble())
-            elCir.LookupParameter('Коэффициент спроса').Set(ks if ks > 0 else 1)
-            for i in arr:
-                if i.LookupParameter('Коэффициент спроса'):
-                    i.LookupParameter('Коэффициент спроса').Set(ks if ks > 0 else 1)
-        else:
-            # print('-------------------')
-            # print(elCir.BaseEquipment.Id)
-            if elCir.BaseEquipment.LookupParameter('Коэффициент спроса'):
-                ks = float(elCir.BaseEquipment.LookupParameter('Коэффициент спроса').AsDouble())
-                elCir.LookupParameter('Коэффициент спроса').Set(ks if ks > 0 else 1)
-            elif arr[0].LookupParameter('Коэффициент спроса'):
-                ks = float(arr[0].LookupParameter('Коэффициент спроса').AsDouble())
-                elCir.LookupParameter('Коэффициент спроса').Set(ks if ks > 0 else 1)
-
-    for elCir in elCirs:
-        arr = list(elCir.Elements)
-        if arr[0].Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-            ks = float(arr[0].LookupParameter('Коэффициент спроса расчетный').AsDouble())
-            elCir.LookupParameter('Коэффициент спроса расчетный').Set(ks if ks > 0 else 1)
-        elif elCir.BaseEquipment.Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-            ks = float(elCir.BaseEquipment.LookupParameter('Коэффициент спроса расчетный').AsDouble())
-            elCir.LookupParameter('Коэффициент спроса расчетный').Set(ks if ks > 0 else 1)
-            for i in arr:
-                if i.LookupParameter('Коэффициент спроса расчетный'):
-                    i.LookupParameter('Коэффициент спроса расчетный').Set(ks if ks > 0 else 1)
-        else:
-            # print('-------------------')
-            # print(elCir.BaseEquipment.Id)
-            if elCir.BaseEquipment.LookupParameter('Коэффициент спроса расчетный'):
-                ks = float(elCir.BaseEquipment.LookupParameter('Коэффициент спроса расчетный').AsDouble())
-                elCir.LookupParameter('Коэффициент спроса расчетный').Set(ks if ks > 0 else 1)
-            elif arr[0].LookupParameter('Коэффициент спроса расчетный'):
-                ks = float(arr[0].LookupParameter('Коэффициент спроса расчетный').AsDouble())
-                elCir.LookupParameter('Коэффициент спроса расчетный').Set(ks if ks > 0 else 1)
-
-    for elCir in elCirs:
-        arr = list(elCir.Elements)
-        if arr[0].Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-            ks = float(arr[0].LookupParameter('Cos φ').AsDouble())
-            elCir.LookupParameter('Cos φ').Set(ks if ks > 0 else 0.85)
-        elif elCir.BaseEquipment.Name == 'Коробка распределительная, 220 В/220 В, Однофазная Тип системы, 3 Провода':
-            ks = float(elCir.BaseEquipment.LookupParameter('Cos φ').AsDouble())
-            elCir.LookupParameter('Cos φ').Set(ks if ks > 0 else 0.85)
-            # for i in arr:
-            #     if i.LookupParameter('Cos φ'):
-            #         i.LookupParameter('Cos φ').Set(ks if ks > 0 else 0.85)
-            Type = doc.GetElement(i.GetTypeId())
-            if arr[0].LookupParameter('Cos φ') and arr[0].LookupParameter('Cos φ').AsDouble() > 0:
-                ks = float(arr[0].LookupParameter('Cos φ').AsDouble())
-                elCir.LookupParameter('Cos φ').Set(ks if ks > 0 else 0.85)
-            if Type.LookupParameter('Cos φ'):
-                ks = float(Type.LookupParameter('Cos φ').AsDouble())
-                elCir.LookupParameter('Cos φ').Set(ks if ks > 0 else 0.85)
-        else:
-            # print('-------------------')
-            # print(elCir.BaseEquipment.Id)
-            if elCir.BaseEquipment.LookupParameter('Cos φ'):
-                ks = float(elCir.BaseEquipment.LookupParameter('Cos φ').AsDouble())
-                elCir.LookupParameter('Cos φ').Set(ks if ks > 0 else 0.85)
-            elif arr[0].LookupParameter('Cos φ'):
-                ks = float(arr[0].LookupParameter('Cos φ').AsDouble())
-                elCir.LookupParameter('Cos φ').Set(ks if ks > 0 else 0.85)
-
-    for branch in branches:
-        for i, cir in enumerate(reversed(branch)):
-            if i == 0: cir.LookupParameter('Установленная мощность ветки').Set(cir.LookupParameter('Установленная мощность').AsDouble())
-            else: cir.LookupParameter('Установленная мощность ветки').Set(0)
-            if list(branch[-1].Elements)[0].LookupParameter('Напряжение цепи').AsDouble() == 380: u = 380
-            else: u = 220
-            cir.LookupParameter('Напряжение цепи').Set(u)
-
-    for branch in branches:
-        for i, cir in enumerate(reversed(branch)):
-            if 'Щит' in cir.BaseEquipment.Name:
-                break
-            superCir = list(reversed(branch))[i+1]
-            superCir.LookupParameter('Установленная мощность ветки').Set(
-                superCir.LookupParameter('Установленная мощность ветки').AsDouble()
-                + cir.LookupParameter('Установленная мощность ветки').AsDouble())
-
-    for elCir in elCirs:
-        P = elCir.LookupParameter('Установленная мощность ветки').AsDouble() / 10763.9104167097
-        U = elCir.LookupParameter('Напряжение цепи').AsDouble()
-        cos = elCir.LookupParameter('Cos φ').AsDouble()
-        if U == 380:
-            try:
-                I = P / (U / 1000 * cos * 1.7320508075688772)
-            except:
-                continue
-        else:
-            try:
-                I = P / (U / 1000 * cos)
-            except:
-                continue
-        elCir.LookupParameter('Ток на участке').Set(I)
-
-    for elCir in elCirs:
-        P = elCir.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097
-        U = elCir.LookupParameter('Напряжение цепи').AsDouble()
-        cos = elCir.LookupParameter('Cos φ').AsDouble()
-        if U == 380:
-            try:
-                I = P / (U / 1000 * cos * 1.7320508075688772)
-            except:
-                continue
-        else:
-            try:
-                I = P / (U / 1000 * cos)
-            except:
-                continue
-        elCir.LookupParameter('Ток').Set(I)
-
-    noms = {10: 1.5,
-            16: 2.5,
-            20: 4,
-            25: 4,
-            32: 6,
-            40: 6,
-            50: 10,
-            63: 16,
-            80: 25,
-            100: 25,
-            125: 35,
-            160: 50,
-            200: 70,
-            225: 95,
-            250: 120,
-            315: 150,
-            400: 240}
-
-    for elCir in elCirs:
-        for i in range(len(sorted(noms.keys()))):
-            if sorted(noms.keys())[i] >= elCir.LookupParameter('Ток').AsDouble():
-                elCir.LookupParameter('Номинал аппарата защиты').Set(sorted(noms.keys())[i])
-                break
-        a = elCir.LookupParameter('Номинал аппарата защиты').AsDouble()
-        elCir.LookupParameter('Сечение кабеля').Set(noms[a])
-
-    for elCir in elCirs:
-        P = elCir.LookupParameter('Установленная мощность ветки').AsDouble() / 10763.9104167097
-        L = elCir.LookupParameter('Длина').AsDouble() * 304.8 / 1000
-        S = elCir.LookupParameter('Сечение кабеля').AsDouble()
-        C = 12 if elCir.LookupParameter('Напряжение цепи').AsDouble() == 220 else 72
-        dU = P * L / (S * C)
-        elCir.LookupParameter('Падение').Set(dU)
-
-    panelsCirs = {}
-    # q = 0
-    for elCir in elCirs:
-        # print('#', q)
-        # q += 1
-        name = elCir.LookupParameter('Имя щита').AsString()
-        if name in panelsCirs:
-            panelsCirs[name].append(elCir)
-        else:
-            panelsCirs[name] = [elCir]
-        # for i in panelsCirs[name]: print(i.LookupParameter('Ток').AsDouble())
-
-    # print('---------------------------------------------')
-
-    for panel in panelsCirs.keys():
-        panelsCirs[panel].sort(key=lambda x: x.LookupParameter('Ток').AsDouble(), reverse=True)
-        # for i in panelsCirs[panel]: print(i.LookupParameter('Ток').AsDouble())
-
-    for sortedCirs in panelsCirs.keys():
-        a, b, c = 0, 0, 0
-        for cir in panelsCirs[sortedCirs]:
-            if 'Щит' in cir.BaseEquipment.Name:
-                if cir.LookupParameter('Напряжение цепи').AsDouble() == 380:
-                    a += cir.LookupParameter('Ток').AsDouble()
-                    b += cir.LookupParameter('Ток').AsDouble()
-                    c += cir.LookupParameter('Ток').AsDouble()
-                    cir.LookupParameter('Номер фазы').Set('1, 2, 3')
-                elif a == min(0, 0, 0):
-                    a += cir.LookupParameter('Ток').AsDouble()
-                    cir.LookupParameter('Номер фазы').Set('L1')
-                elif b == min(0, 0, 0):
-                    b += cir.LookupParameter('Ток').AsDouble()
-                    cir.LookupParameter('Номер фазы').Set('L2')
-                else:
-                    c += cir.LookupParameter('Ток').AsDouble()
-                    cir.LookupParameter('Номер фазы').Set('L3')
-        try:
-            phaseShift = (max(a, b, c) - min(a, b, c)) / max(a, b, c) * 100
-        except ZeroDivisionError:
-            phaseShift = 0
-        for cir in panelsCirs[sortedCirs]:
-            cir.LookupParameter('Перекос фаз').Set(phaseShift)
-            cir.LookupParameter('Ток по фазам').Set('{:.2f}, {:.2f}, {:.2f}'.format(float(a), float(b), float(c)).replace('.', ','))
-        # print(a, b, c)
-        # print(phaseShift)
-
-    for branch in branches:
-        phase = branch[0].LookupParameter('Номер фазы').AsString()
-        for cir in branch[1:]:
-            cir.LookupParameter('Номер фазы').Set(phase)
-
-    # panelsBranches = {}  ############ дубль!
-    for branch in branches:
-        phase = branch[0].LookupParameter('Номер фазы').AsString()
-        for cir in branch[1:]:
-            cir.LookupParameter('Номер фазы').Set(phase)
-
-    for panel in pgb.keys(): ####################################### сделать ненулевую нумерацию
-        i = 0
-        for group in natural_sorted(pgb[panel].keys()):
-            i += 1
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    cir.LookupParameter('Номер аппарата защиты').Set(i)
-
-    for panel in pgb.keys():
-        for group in natural_sorted(pgb[panel].keys()):
-            brlenlst = []
-            n = 0
-            for branch in pgb[panel][group]:
-                brlenlst.append(0)
-                for i, cir in enumerate(branch):
-                    if i != len(branch) - 1 or len(branch) == 1:
-                        brlenlst[n] += cir.LookupParameter('Длина').AsDouble() * 304.8
-                    else:
-                        n += 1
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    cir.LookupParameter('Длина расчетная').Set(max(brlenlst)) # Максимальная длина ветки не включая последний участок
-
-    for panel in pgb.keys():
-        for group in natural_sorted(pgb[panel].keys()):
-            voltageDrop = 0
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    vd = cir.LookupParameter('Падение').AsDouble()
-                    if vd > voltageDrop:
-                        voltageDrop = vd
-            if voltageDrop > 5:
-                gr = pgb[panel][group][0][0].LookupParameter('Номер группы').AsString()
-                print('Внимание! Падение напряжения {} составляет {:.2f}'.format(gr, voltageDrop))
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    cir.LookupParameter('Падение группы').Set(voltageDrop)
-
-    for panel in pgb.keys():
-        for group in pgb[panel].keys():
-            cirIds = set()
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    cirIds.add(str(cir.Id.IntegerValue))
-            for branch in pgb[panel][group]:
-                branch[0].LookupParameter('Цепи').Set(' '.join(cirIds))
-
-    for panel in pgb.keys():
-        for group in pgb[panel].keys():
-            spaces = []
-            names = []
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    spaces.extend(cir.LookupParameter('Помещение нагрузки').AsString().split('; '))
-                    names.extend(cir.LookupParameter('Имя нагрузки').AsString().split('; '))
-            spaces = filter(lambda x: '-' not in x, spaces)
-            names = filter(lambda x: 'оробка' not in x, names)
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    cir.LookupParameter('Помещения группы').Set('; '.join(natural_sorted(set(spaces))))
-                    cir.LookupParameter('Имя нагрузки группы').Set('; '.join(natural_sorted(set(names))))
-
-    for panel in pgb.keys():
-        for group in pgb[panel].keys():
-            for branch in pgb[panel][group]:
-                for cir in branch:
-                    ks = cir.LookupParameter('Коэффициент спроса расчетный').AsDouble()
-                    # cir.LookupParameter('Кодн').Set(1)
-                    kodn = 1
-                    power = cir.LookupParameter('Суммарная мощность группы').AsDouble() * ks * kodn
-                    cir.LookupParameter('Расчетная мощность').Set(power)
-                    tg = math.tan(math.acos(cir.LookupParameter('Cos φ').AsDouble()))
-                    cir.LookupParameter('tg φ').Set(power * ks * kodn)
-                    Q = power * tg
-                    cir.LookupParameter('Q, квар').Set(Q)
-
-
-    for panel in pcb.keys():
-        pan = doc.GetElement(ElementId(panel))
-        if 'ГРЩ' in pan.LookupParameter('Имя щита').AsString():
-            for group in pcb[panel].keys():
-                for branch in pcb[panel][group]:
-                    for cir in branch:
-                        nagr = list(cir.Elements)[0]
-                        name = nagr.LookupParameter('Имя щита').AsString()
-                        cir.LookupParameter('Имя нагрузки').Set(name)
-                        cir.LookupParameter('Имя нагрузки группы').Set(name)
-                        power1 = 0
-                        power2 = 0
-                        Q = 0
-                        for cir in list(nagr.MEPModel.ElectricalSystems):
-                            power1 += cir.LookupParameter('Суммарная мощность группы').AsDouble()
-                            power2 += cir.LookupParameter('Расчетная мощность').AsDouble()
-                            Q += cir.LookupParameter('Q, квар').AsDouble()
-                        cir.LookupParameter('Суммарная мощность группы').Set(power1)
-                        cir.LookupParameter('Расчетная мощность').Set(power2)
-                        cir.LookupParameter('Q, квар').Set(Q)
-                        S = math.sqrt(power2 ** 2 + Q ** 2)
-                        cir.LookupParameter('S, кВА').Set(S)
-                        U = cir.LookupParameter('Напряжение цепи').AsDouble() / 1000
-                        I = S / math.sqrt(3) / U
-                        cir.LookupParameter('S, кВА').Set(S)
-                        ks = power2 / power1
-                        cir.LookupParameter('Коэффициент спроса расчетный').Set(ks)
-                        cos = power2 / S
-                        cir.LookupParameter('Cos φ').Set(cos)
-                        tg = math.tan(math.acos(cos))
-                # spaces = filter(lambda x: '-' not in x, spaces)
-                # names = filter(lambda x: 'оробка' not in x, names)
-                # for branch in pcb[panel][group]:
-                #     for cir in branch:
-                #         cir.LookupParameter('Помещения группы').Set('; '.join(natural_sorted(set(spaces))))
-                #         cir.LookupParameter('Имя нагрузки группы').Set('; '.join(natural_sorted(set(names))))
-
-    # panelsToDraw = {}
-
-    # for panel in pcb.keys():
-    #     panelsToDraw = doc.GetElement(ElementId(panel))
-    #     for clusterHead in pcb[panel].keys():
-    #         cApps = []
-    #         for branch in pcb[panel][clusterHead]:
-    #             for cir in branch:
-    #                 for el in list(cir.Elements):
-    #                     if el.LookupParameter('Ком. аппарат'):
-    #                         if el.LookupParameter('Ком. аппарат').AsString():
-    #                             cApps.append(el.LookupParameter('Ком. аппарат').AsString())
-    #                         elif 'IT сеть' in el.Name:
-    #                             cApps.append('QF')
-    #                         elif 'LED' in el.Name:
-    #                             cApps.append('qf')
-    #         cApps = filter(lambda x: x != '', natural_sorted(list(set(cApps))))
-    #         if len(cApps) == 0:
-    #             cApps = ['QFD']
-    #         if len(cApps) > 1:
-    #             for name in cApps:
-    #                 if '!' in name:
-    #                     actual = name
-    #                     break
-    #                 else:
-    #                     actual = cApps[0]
-    #             actual = actual.replace('!', '')
-    #             print('Внимание! В группе {} аппараты защиты {} заменены на {}'.format(pcb[panel][clusterHead][0][0].LookupParameter('Номер группы').AsString(), ', '.join(cApps), actual))
-    #         else:
-    #             actual = cApps[0]
-    #         for branch in pcb[panel][clusterHead]:
-    #             for cir in branch:
-    #                 cir.LookupParameter('Ком. аппарат').Set(actual)
-    # for elCir in elCirs:
-    #     name = elCir.LookupParameter('Ком. аппарат').AsString()
-    #     for elem in list(elCir.Elements):
-    #         if elem.LookupParameter('Ком. аппарат'):
-    #             elem.LookupParameter('Ком. аппарат').Set(name)
-
-    # draw(panelsCirs)
-
-    t.Commit()
-
-    return branches
-
-
-def natural_sorted(list, key=lambda s: s):
-    """
-    Sort the list into natural alphanumeric order.
-    """
-    def get_alphanum_key_func(key):
-        convert = lambda text: int(text) if text.isdigit() else text
-        return lambda s: [convert(c) for c in re.split('([0-9]+)', key(s))]
-    sort_key = get_alphanum_key_func(key)
-    return sorted(list, key=sort_key)
 
 
 def find_longer_path(elCir, branch):
@@ -701,85 +37,378 @@ def find_longer_path(elCir, branch):
     branch.pop()
 
 
-def draw(panels):
-    els = FilteredElementCollector(doc)\
-        .OfCategory(BuiltInCategory.OST_GenericAnnotation)\
-        .WhereElementIsNotElementType()\
-        .ToElements()
+def natural_sorted(list, key=lambda s: s):
+    """
+    Sort the list into natural alphanumeric order.
+    """
+    def get_alphanum_key_func(key):
+        convert = lambda text: int(text) if text.isdigit() else text
+        return lambda s: [convert(c) for c in re.split('([0-9]+)', key(s))]
+    sort_key = get_alphanum_key_func(key)
+    return sorted(list, key=sort_key)
 
-    for el in els:
-        if el.Name == 'Цепь' or el.Name == 'Щит':
-            doc.Delete(el.Id)
 
-    anns = FilteredElementCollector(doc)\
-        .OfCategory(BuiltInCategory.OST_GenericAnnotation)\
-        .WhereElementIsElementType()\
-        .ToElements()
+t = Transaction(doc, 'name')
+t.Start()
 
-    cirFamily = list(filter(lambda x: x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM)
-                                       .AsString() == 'Цепь', anns))[0]
-    panelFamily = list(filter(lambda x: x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM)
-                                         .AsString() == 'Щит', anns))[0]
-    activeView = doc.ActiveView
+elCirs = FilteredElementCollector(doc)\
+    .OfCategory(BuiltInCategory.OST_ElectricalCircuit)\
+    .WhereElementIsNotElementType().ToElements()
 
-    cApps = {
-        'qf': 'Автоматический выключатель',
-        'QF': 'Автоматический выключатель 2P',
-        'QS': 'Выключатель',
-        'QFD': 'Дифф',
-        'KM': 'Контактор',
-        'FU': 'Плавкая вставка',
-        'QSU': 'Рубильник с плавкой вставкой',
-        'QD': 'УЗО'}
+global branches
+branches = []
+for cir in [cir for cir in elCirs if 'Щит' in cir.BaseEquipment.Name]:
+    preBranch = []
+    find_longer_path(cir, preBranch)
 
-    for y, panel in enumerate(natural_sorted(panels.keys())):
-        el = doc.Create.NewFamilyInstance(XYZ(0, -y * 250 / k, 0), panelFamily, activeView)
-        el.LookupParameter('qwe').Set(panel)
-        headCirs = filter(lambda x: 'Щит' in x.BaseEquipment.Name, natural_sorted(panels[panel], key=lambda x: x.LookupParameter('Номер группы').AsString()))
-        res = headCirs[0].BaseEquipment.LookupParameter('Резерв').AsInteger()
-        n = len(list(headCirs[0].BaseEquipment.MEPModel.ElectricalSystems))  # Продираемся до щита и считаем количество его цепей
-        el.LookupParameter('Ширина рамки').Set((n + res) * 16 / k)
-        minNom = 99999999
-        minChar = 'D'
-        for x, cir in enumerate(headCirs + range(res)):
-            if type(cir) != type(1):
-                el = doc.Create.NewFamilyInstance(XYZ(x * 16 / k, -y * 250 / k, 0), cirFamily, activeView)
-                el.LookupParameter('Номер группы').Set(cir.LookupParameter('Номер группы').AsString())
-                el.LookupParameter('Суммарная мощность группы').Set(round(cir.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097, 2))
-                el.LookupParameter('Cos φ').Set(round(cir.LookupParameter('Cos φ').AsDouble(), 2))
-                el.LookupParameter('Ток').Set(round(cir.LookupParameter('Ток').AsDouble(), 2))
-                el.LookupParameter('Падение группы').Set(round(cir.LookupParameter('Падение группы').AsDouble(), 2))
-                el.LookupParameter('Длина расчетная').Set(round(cir.LookupParameter('Длина расчетная').AsDouble() / 1000, 0))
+pcb = {}  # panelsClusterBranches
+pcc = {}  # panelsClusterCircuits
+pCirs = {}  # panelsCircuits
+for branch in branches:
+    panel = branch[0]
 
-                nom = round(cir.LookupParameter('Номинал аппарата защиты').AsDouble(), 0)
-                if minNom > nom: minNom = nom
-                char = cir.LookupParameter('Характеристика аппарата защиты').AsString()
-                if char == 'C': minChar = 'C'
-                el.LookupParameter('Номинал аппарата защиты').Set(nom)
-                el.LookupParameter('Характеристика аппарата защиты').Set(char)
+    if panel not in pcb:
+        pcb[panel] = {}
+    clusterHead = branch[0]
+    if clusterHead not in pcb[panel]:
+        pcb[panel][clusterHead] = []
+    pcb[panel][clusterHead].append(branch)
 
-                el.LookupParameter('Напряжение цепи').Set(round(cir.LookupParameter('Напряжение цепи').AsDouble(), 0))
-                el.LookupParameter('Имя нагрузки').Set(cir.LookupParameter('Имя нагрузки группы').AsString())
-                el.LookupParameter('Цепи').Set(cir.LookupParameter('Цепи').AsString())
-                sech = '{:.1f}'.format(cir.LookupParameter('Сечение кабеля').AsDouble()).replace('.0', '')
-                n = 3 if cir.LookupParameter('Напряжение цепи').AsDouble() == 220 else 5
-                name = cir.LookupParameter('Кабель').AsString()
-                el.LookupParameter('Кабель').Set('{} {}x{}'.format(name, n, sech.replace('.', ',')))
-                el.LookupParameter('Номер фазы').Set(cir.LookupParameter('Номер фазы').AsString())
-                el.LookupParameter('Помещения группы').Set(cir.LookupParameter('Помещения группы').AsString().replace('; -', ''))
-                el.LookupParameter(cApps[cir.LookupParameter('Ком. аппарат').AsString()]).Set(1)
-                el.LookupParameter('Ком. аппарат подпись').Set(cir.LookupParameter('Ком. аппарат').AsString().replace('qf', 'QF'))
+    if panel not in pcc:
+        pcc[panel] = {}
+    if clusterHead not in pcc[panel]:
+        pcc[panel][clusterHead] = []
+    pcc[panel][clusterHead].extend(branch)
+
+    if panel.BaseEquipment.Id not in pCirs:
+        pCirs[panel.BaseEquipment.Id] = []
+    pCirs[panel.BaseEquipment.Id].extend(branch)
+
+for i in pCirs.keys():
+    pCirs[i] = list(set(pCirs[i]))
+
+childCirs = {cir.Id.IntegerValue: [] for cir in elCirs}
+for panel in pcc.keys():
+    for clusterHead in pcc[panel].keys():
+        cluster = pcb[panel][clusterHead]
+        for branch in cluster:
+            for cir in branch:
+                cir.LookupParameter('Цепи').Set('')
+        for branch in cluster:
+            reversedBranch = list(reversed(branch))
+            for i, cir in enumerate(reversedBranch):
+                cirIds = [cir.Id.IntegerValue]
+                if childCirs[cir.Id.IntegerValue]:
+                    cirIds.extend(childCirs[cir.Id.IntegerValue])
+                childCirs[cir.Id.IntegerValue].extend(set(cirIds))
+                childCirs[cir.Id.IntegerValue] = list(set(childCirs[cir.Id.IntegerValue]))
+                if 'Щит' in cir.BaseEquipment.Name:
+                    break
+                superCir = reversedBranch[i+1]
+                superCirIds = [superCir.Id.IntegerValue]
+                if childCirs[superCir.Id.IntegerValue]:
+                    superCirIds.extend(childCirs[superCir.Id.IntegerValue])
+                childCirs[superCir.Id.IntegerValue].extend(set(cirIds + superCirIds))
+                childCirs[superCir.Id.IntegerValue] = list(set(childCirs[superCir.Id.IntegerValue]))
+
+noms = {10: 1.5,
+        16: 2.5,
+        20: 4,
+        25: 4,
+        32: 6,
+        40: 6,
+        50: 10,
+        63: 16,
+        80: 25,
+        100: 25,
+        125: 35,
+        160: 50,
+        200: 70,
+        225: 95,
+        250: 120,
+        315: 150,
+        400: 240}
+
+for panel in sorted(pcc.keys(), key=lambda x: x.LookupParameter('Имя щита').AsString()):
+    for clusterHead in pcc[panel].keys():
+        groupsCirs = pcc[panel][clusterHead]
+        branches = pcb[panel][clusterHead]
+
+        groupNums = []
+        cableNames = []
+        cApps = []
+        totalPower = 0
+        characteristic = 'C'
+        kss = []
+        ksrs = []
+        coss = []
+        voltages = []
+
+        panelName = groupsCirs[0].BaseEquipment.LookupParameter('Имя щита').AsString()
+
+        ############################################################################### Из цепи
+        for cir in groupsCirs:
+            groupNums.append(cir.LookupParameter('Номер группы').AsString())
+            cableNames.append(cir.LookupParameter('Кабель').AsString())
+            cApps.append(cir.LookupParameter('Ком. аппарат').AsString())
+            kss.append(cir.LookupParameter('Коэффициент спроса').AsDouble())
+            ksrs.append(cir.LookupParameter('Коэффициент спроса расчетный').AsDouble())
+            coss.append(cir.LookupParameter('Cos φ').AsDouble())
+            voltages.append(cir.LookupParameter('Напряжение цепи').AsDouble())
+
+            consumerNames = []
+            consumerSpaces = []
+
+            installedPower = 0
+
+            branchInstalledPower = 0
+            for idInt in childCirs[cir.Id.IntegerValue]:
+                for el in list(doc.GetElement(ElementId(idInt)).Elements):
+                    param = el.LookupParameter('Установленная мощность')
+                    param0 = doc.GetElement(el.GetTypeId()).LookupParameter('Установленная мощность')
+                    branchInstalledPower += param.AsDouble() if param else param0.AsDouble() if param0 else 0
+
+            ############################################################################### Из элементов цепи
+            for el in list(cir.Elements):
+                param = el.LookupParameter('Номер группы')
+                groupNums.append(param.AsString() if param else '-')
+
+                param = el.LookupParameter('Наименование потребителя')
+                naim = param.AsString() if param else el.Name
+                naim = naim if naim else el.Name
+                naim = 'Розеточная сеть' if 'озетка' in naim else naim
+                naim = '(Распредкоробка)' if 'оробка' in naim else naim
+                consumerNames.append(naim)
+
+                space = el.Space[doc.GetElement(el.CreatedPhaseId)]
+                consumerSpaces.append(space.Number if space else '-')
+
+                param = el.LookupParameter('Кабель')
+                cableNames.append(param.AsString() if param else 'ВВГнг(А)-LSLTx')
+
+                param = el.LookupParameter('Ком. аппарат')
+                # 'qf': 'Автоматический выключатель',
+                # 'QF': 'Автоматический выключатель 2P',
+                # 'QS': 'Выключатель',
+                # 'QFD': 'Дифф',
+                # 'KM': 'Контактор',
+                # 'FU': 'Плавкая вставка',
+                # 'QSU': 'Рубильник с плавкой вставкой',
+                # 'QD': 'УЗО'
+                cApps.append(param.AsString() if param else 'QF' if 'IT сеть' in el.Name else 'qf' if 'LED' in el.Name else '')
+
+                param = el.LookupParameter('Установленная мощность')
+                param0 = doc.GetElement(el.GetTypeId()).LookupParameter('Установленная мощность')
+                installedPower += param.AsDouble() if param else param0.AsDouble() if param0 else 0
+
+                if installedPower / 10763.9104167097 >= 3: characteristic = 'D'
+
+                param = el.LookupParameter('Коэффициент спроса')
+                param0 = doc.GetElement(el.GetTypeId()).LookupParameter('Коэффициент спроса')
+                kss.append(param.AsDouble() if param else param0.AsDouble() if param0 else 0)
+
+                param = el.LookupParameter('Коэффициент спроса расчетный')
+                param0 = doc.GetElement(el.GetTypeId()).LookupParameter('Коэффициент спроса расчетный')
+                ksrs.append(param.AsDouble() if param else param0.AsDouble() if param0 else 0)
+
+                param = el.LookupParameter('Cos φ')
+                param0 = doc.GetElement(el.GetTypeId()).LookupParameter('Cos φ')
+                coss.append(param.AsDouble() if param else param0.AsDouble() if param0 else 0)
+
+                param = el.LookupParameter('Напряжение цепи')
+                voltages.append(param.AsDouble() if param else 0)
+
+            ############################################################################### Из цепи, но после суммирования
+            totalPower += installedPower
+
+            ############################################################################### В цепь (для цепи)
+            cir.LookupParameter('Имя нагрузки').Set('; '.join(set(consumerNames)))
+
+            cir.LookupParameter('Помещение нагрузки').Set('; '.join(natural_sorted(set(consumerSpaces))))
+
+            cir.LookupParameter('Имя щита').Set(panelName if panelName else '-')
+
+            cir.LookupParameter('Установленная мощность').Set(installedPower)
+
+            cir.LookupParameter('Установленная мощность ветки').Set(branchInstalledPower)
+
+        ############################################################################### Расчеты
+        groupNums = filter(lambda x: x != '', natural_sorted(list(set(groupNums))))
+        if len(groupNums) > 1:
+            for name in groupNums:
+                if '!' in name:
+                    groupNum = name.replace('!', '')
+                    break
+                else:
+                    groupNum = groupNums[0]
+            print('{}: Номера групп {} заменены на {}'.format(panelName, ', '.join(groupNums), groupNum))
+        else:
+            groupNum = groupNums[0].replace('!', '')
+
+        cableNames = filter(lambda x: x != '', natural_sorted(list(set(cableNames))))
+        if len(cableNames) > 1:
+            for name in cableNames:
+                if '!' in name:
+                    cableName = name
+                    break
+                else:
+                    cableName = cableNames[0].replace('!', '')
+            print('{}: В группе {} кабели {} заменены на {}'.format(panelName, groupNum, ', '.join(cableNames), cableName))
+        else:
+            cableName = cableNames[0].replace('!', '')
+
+        cApps = filter(lambda x: x != '', natural_sorted(list(set(cApps))))
+        if len(cApps) > 1:
+            for name in cApps:
+                if '!' in name:
+                    cApp = name
+                    break
+                else:
+                    cApp = cApps[0].replace('!', '')
+            print('{}: В группе {} аппараты защиты {} заменены на {}'.format(panelName, groupNum, ', '.join(cApps), cApp))
+        else:
+            cApp = cApps[0].replace('!', '') if cApps else 'QFD'
+
+        kss = filter(lambda x: x, kss)
+        tmp = {}
+        if len(set(kss)) == 1:
+            ks = kss[0]
+        elif kss:
+            for i in kss:
+                if i not in tmp:
+                    tmp[i] = 0
+                else:
+                    tmp[i] += 1
+            ks = sorted(tmp.keys(), key=lambda x: tmp[x])[0]
+            print('{}: В группе {} коэффициенты спроса {} заменены на {:.2f}'.format(panelName, groupNum, ', '.join(map(lambda x: '{:.2f}'.format(x), set(kss))), ks))
+        else:
+            ks = 1
+
+        ksrs = filter(lambda x: x, ksrs)
+        tmp = {}
+        if len(set(ksrs)) == 1:
+            ksr = ksrs[0]
+        elif ksrs:
+            for i in ksrs:
+                if i not in tmp:
+                    tmp[i] = 0
+                else:
+                    tmp[i] += 1
+            ksr = sorted(tmp.keys(), key=lambda x: tmp[x])[0]
+            print('{}: В группе {} коэффициенты спроса расчетные {} заменены на {:.2f}'.format(panelName, groupNum, ', '.join(map(lambda x: '{:.2f}'.format(x), set(ksrs))), ksr))
+        else:
+            ksr = 1
+
+        coss = filter(lambda x: x, coss)
+        tmp = {}
+        if len(set(coss)) == 1:
+            cos = coss[0]
+        elif coss:
+            for i in coss:
+                if i not in tmp:
+                    tmp[i] = 0
+                else:
+                    tmp[i] += 1
+            cos = sorted(tmp.keys(), key=lambda x: tmp[x])[0]
+            print('{}: В группе {} Cos φ {} заменены на {:.2f}'.format(panelName, groupNum, ', '.join(map(lambda x: '{:.2f}'.format(x), set(coss))), cos))
+        else:
+            cos = 0.85
+
+        voltages = filter(lambda x: x, voltages)
+        tmp = {}
+        if len(set(voltages)) == 1:
+            voltage = voltages[0]
+        elif voltages:
+            for i in voltages:
+                if i not in tmp:
+                    tmp[i] = 0
+                else:
+                    tmp[i] += 1
+            voltage = sorted(tmp.keys(), key=lambda x: tmp[x])[0]
+            print('{}: В группе {} напряжения цепи {} заменены на {:.2f}'.format(panelName, groupNum, ', '.join(map(lambda x: '{:.2f}'.format(x), set(voltages))), voltage))
+        else:
+            voltage = 220
+
+        ############################################################################### В цепь (для группы)
+        for cir in groupsCirs:
+            cir.LookupParameter('Номер группы').Set(groupNum)
+            cir.LookupParameter('Кабель').Set(cableName)
+            cir.LookupParameter('Ком. аппарат').Set(cApp)
+            cir.LookupParameter('Суммарная мощность группы').Set(totalPower)
+            cir.LookupParameter('Характеристика аппарата защиты').Set(characteristic)
+            cir.LookupParameter('Коэффициент спроса').Set(ks)
+            cir.LookupParameter('Коэффициент спроса расчетный').Set(ksr)
+            cir.LookupParameter('Cos φ').Set(cos)
+            cir.LookupParameter('Напряжение цепи').Set(voltage)
+
+            # это все тут, а не выше, так как зависит от напряжения, которое посчитано только сейчас
+            P = cir.LookupParameter('Установленная мощность ветки').AsDouble() / 10763.9104167097
+            I = P / (voltage / 1000 * cos * 1.7320508075688772) if voltage == 380 else P / (voltage / 1000 * cos)
+            cir.LookupParameter('Ток на участке').Set(I)
+
+            P = totalPower / 10763.9104167097
+            I = P / (voltage / 1000 * cos * 1.7320508075688772) if voltage == 380 else P / (voltage / 1000 * cos)
+            cir.LookupParameter('Ток').Set(I)
+
+            for i in range(len(noms)):
+                if sorted(noms.keys())[i] >= I:
+                    nom = sorted(noms.keys())[i]
+                    cir.LookupParameter('Номинал аппарата защиты').Set(nom)
+                    break
+
+            cir.LookupParameter('Сечение кабеля').Set(noms[nom])
+
+            P = cir.LookupParameter('Установленная мощность ветки').AsDouble() / 10763.9104167097
+            L = cir.LookupParameter('Длина').AsDouble() * 304.8 / 1000
+            S = noms[nom]
+            C = 12 if voltage == 220 else 72
+            dU = P * L / (S * C)
+            cir.LookupParameter('Падение').Set(dU)
+
+            ############################################################################### В элементы цепи
+            for el in list(cir.Elements):
+                el.LookupParameter('Номер группы').Set(groupNum)
+                el.LookupParameter('Кабель').Set(cableName) if el.LookupParameter('Кабель') else 1
+                el.LookupParameter('Ком. аппарат').Set(cApp) if el.LookupParameter('Ком. аппарат') else 1
+                el.LookupParameter('Коэффициент спроса').Set(ks) if el.LookupParameter('Коэффициент спроса') else 1
+                el.LookupParameter('Коэффициент спроса расчетный').Set(ksr) if el.LookupParameter('Коэффициент спроса расчетный') else 1
+                el.LookupParameter('Cos φ').Set(cos) if el.LookupParameter('Cos φ') else 1
+                el.LookupParameter('Напряжение цепи').Set(voltage) if el.LookupParameter('Напряжение цепи') else 1
+        # ### работа с ветвями
+        # for clusterHead in pcc[panel].keys():
+        #     appNumber += 1
+        #     for cir in pcc[panel][clusterHead]:
+        #         cir.LookupParameter('Номер аппарата защиты').Set(appNumber)
+
+##########################################################################################
+##########################################################################################
+for i in pCirs.keys():
+    a, b, c = 0, 0, 0
+    for cir in sorted(pCirs[i], key=lambda x: x.LookupParameter('Ток').AsDouble(), reverse=True):
+        if 'Щит' in cir.BaseEquipment.Name:
+            if cir.LookupParameter('Напряжение цепи').AsDouble() == 380:
+                a += cir.LookupParameter('Ток').AsDouble()
+                b += cir.LookupParameter('Ток').AsDouble()
+                c += cir.LookupParameter('Ток').AsDouble()
+                cir.LookupParameter('Номер фазы').Set('1, 2, 3')
+            elif a == min(0, 0, 0):
+                a += cir.LookupParameter('Ток').AsDouble()
+                cir.LookupParameter('Номер фазы').Set('L1')
+            elif b == min(0, 0, 0):
+                b += cir.LookupParameter('Ток').AsDouble()
+                cir.LookupParameter('Номер фазы').Set('L2')
             else:
-                el = doc.Create.NewFamilyInstance(XYZ(x * 16 / k, -y * 250 / k, 0), cirFamily, activeView)
-                el.LookupParameter('Имя нагрузки').Set('Резерв')
-                el.LookupParameter('Характеристика аппарата защиты').Set(minChar)
-                el.LookupParameter('Номинал аппарата защиты').Set(minNom)
-                el.LookupParameter('Номер фазы').Set('L1')
-                el.LookupParameter('Основные').Set(0)
-                el.LookupParameter('Автоматический выключатель').Set(1)
+                c += cir.LookupParameter('Ток').AsDouble()
+                cir.LookupParameter('Номер фазы').Set('L3')
+    phaseShift = (max(a, b, c) - min(a, b, c)) / max(a, b, c) * 100 if any([a, b, c]) else 0
+    for cir in pCirs[i]:
+            cir.LookupParameter('Перекос фаз').Set(phaseShift)
+            cir.LookupParameter('Ток по фазам').Set('{:.2f}, {:.2f}, {:.2f}'.format(float(a), float(b), float(c)).replace('.', ','))
 
+for panel in pcc.keys():
+    print(panel)
+    for cluster in natural_sorted(pcc[panel].keys(), key=lambda x: x.LookupParameter('Номер группы').AsString()):
+        pass# print(cluster.LookupParameter('Номер группы').AsString())
 
-with open('C:\\Users\\sgrodnik\\Desktop\\TRN.txt', 'w', buffering=1) as o:
-    # sys.stdout = o
-    # print("Start")
-    OUT = main()
+t.SetName('ТРН {}, {} с'.format(time.ctime().split()[3], time.time() - startTime))
+t.Commit()

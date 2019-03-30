@@ -64,12 +64,13 @@ for cir in [cir for cir in elCirs if 'Щит' in cir.BaseEquipment.Name]:
 pcb = {}  # panelsClusterBranches
 pcc = {}  # panelsClusterCircuits
 pCirs = {}  # panelsCircuits
+# pClusterCirs = {}  # panelsClusterCircuits - именно панель, а не головная цепь, как в pcc
 for branch in branches:
-    panel = branch[0]
+    panel = branch[0].BaseEquipment.Id
+    clusterHead = branch[0]
 
     if panel not in pcb:
         pcb[panel] = {}
-    clusterHead = branch[0]
     if clusterHead not in pcb[panel]:
         pcb[panel][clusterHead] = []
     pcb[panel][clusterHead].append(branch)
@@ -80,9 +81,9 @@ for branch in branches:
         pcc[panel][clusterHead] = []
     pcc[panel][clusterHead].extend(branch)
 
-    if panel.BaseEquipment.Id not in pCirs:
-        pCirs[panel.BaseEquipment.Id] = []
-    pCirs[panel.BaseEquipment.Id].extend(branch)
+    if panel not in pCirs:
+        pCirs[panel] = []
+    pCirs[panel].extend(branch)
 
 for i in pCirs.keys():
     pCirs[i] = list(set(pCirs[i]))
@@ -129,10 +130,10 @@ noms = {10: 1.5,
         315: 150,
         400: 240}
 
-for panel in sorted(pcc.keys(), key=lambda x: x.LookupParameter('Имя щита').AsString()):
+for panel in sorted(pcc.keys(), key=lambda x: doc.GetElement(x).LookupParameter('Имя щита').AsString()):
     for clusterHead in pcc[panel].keys():
         groupsCirs = pcc[panel][clusterHead]
-        branches = pcb[panel][clusterHead]
+        # branches = pcb[panel][clusterHead]
 
         groupNums = []
         cableNames = []
@@ -374,11 +375,6 @@ for panel in sorted(pcc.keys(), key=lambda x: x.LookupParameter('Имя щита
                 el.LookupParameter('Коэффициент спроса расчетный').Set(ksr) if el.LookupParameter('Коэффициент спроса расчетный') else 1
                 el.LookupParameter('Cos φ').Set(cos) if el.LookupParameter('Cos φ') else 1
                 el.LookupParameter('Напряжение цепи').Set(voltage) if el.LookupParameter('Напряжение цепи') else 1
-        # ### работа с ветвями
-        # for clusterHead in pcc[panel].keys():
-        #     appNumber += 1
-        #     for cir in pcc[panel][clusterHead]:
-        #         cir.LookupParameter('Номер аппарата защиты').Set(appNumber)
 
 ##########################################################################################
 ##########################################################################################
@@ -406,9 +402,18 @@ for i in pCirs.keys():
             cir.LookupParameter('Ток по фазам').Set('{:.2f}, {:.2f}, {:.2f}'.format(float(a), float(b), float(c)).replace('.', ','))
 
 for panel in pcc.keys():
-    print(panel)
+    appNumber = doc.GetElement(panel).LookupParameter('Номер аппарата защиты').AsInteger()
     for cluster in natural_sorted(pcc[panel].keys(), key=lambda x: x.LookupParameter('Номер группы').AsString()):
-        pass# print(cluster.LookupParameter('Номер группы').AsString())
+        appNumber += 1
+        for cir in pcc[panel][cluster]:
+            cir.LookupParameter('Номер аппарата защиты').Set(appNumber)
+        # pass# print(cluster.LookupParameter('Номер группы').AsString())
+
+# ### работа с ветвями
+# for clusterHead in pcc[panel].keys():
+#     appNumber += 1
+#     for cir in pcc[panel][clusterHead]:
+#         cir.LookupParameter('Номер аппарата защиты').Set(appNumber)
 
 t.SetName('ТРН {}, {} с'.format(time.ctime().split()[3], time.time() - startTime))
 t.Commit()

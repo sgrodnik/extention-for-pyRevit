@@ -518,7 +518,7 @@ for panel in pgb.keys():
             i += 1
             for branch in pgb[panel][group]:
                 for cir in branch:
-                    cir.LookupParameter('Номер аппарата защиты').Set(i)
+                    cir.LookupParameter('Номер аппарата защиты').Set(i)  ###
 
     for panel in pgb.keys():
         for group in natural_sorted(pgb[panel].keys()):
@@ -533,7 +533,7 @@ for panel in pgb.keys():
                         n += 1
             for branch in pgb[panel][group]:
                 for cir in branch:
-                    cir.LookupParameter('Длина расчетная').Set(max(brlenlst)) # Максимальная длина ветки не включая последний участок
+                    cir.LookupParameter('Длина расчетная').Set(max(brlenlst)) # Максимальная длина ветки не включая последний участок  ###
 
     for panel in pgb.keys():
         for group in natural_sorted(pgb[panel].keys()):
@@ -548,7 +548,7 @@ for panel in pgb.keys():
                 print('Внимание! Падение напряжения {} составляет {:.2f}'.format(gr, voltageDrop))
             for branch in pgb[panel][group]:
                 for cir in branch:
-                    cir.LookupParameter('Падение группы').Set(voltageDrop)
+                    cir.LookupParameter('Падение группы').Set(voltageDrop)  ###
 
     for panel in pgb.keys():
         for group in pgb[panel].keys():
@@ -571,8 +571,8 @@ for panel in pgb.keys():
             names = filter(lambda x: 'оробка' not in x, names)
             for branch in pgb[panel][group]:
                 for cir in branch:
-                    cir.LookupParameter('Помещения группы').Set('; '.join(natural_sorted(set(spaces))))
-                    cir.LookupParameter('Имя нагрузки группы').Set('; '.join(natural_sorted(set(names))))
+                    cir.LookupParameter('Помещения группы').Set('; '.join(natural_sorted(set(spaces))))  ###
+                    cir.LookupParameter('Имя нагрузки группы').Set('; '.join(natural_sorted(set(names))))  ###
 
     for panel in pgb.keys():
         for group in pgb[panel].keys():
@@ -582,11 +582,11 @@ for panel in pgb.keys():
                     # cir.LookupParameter('Кодн').Set(1)
                     kodn = 1
                     power = cir.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097 * ks * kodn
-                    cir.LookupParameter('Расчетная мощность').Set(power)
+                    cir.LookupParameter('Расчетная мощность').Set(power)  ###
                     tg = math.tan(math.acos(cir.LookupParameter('Cos φ').AsDouble()))
-                    cir.LookupParameter('tg φ').Set(tg)
+                    cir.LookupParameter('tg φ').Set(tg)  ###
                     Q = power * tg
-                    cir.LookupParameter('Q, квар').Set(Q)
+                    cir.LookupParameter('Q, квар').Set(Q)  ###
 
 
     for panel in pcb.keys():

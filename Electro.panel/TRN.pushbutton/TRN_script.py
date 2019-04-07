@@ -76,6 +76,7 @@ elCirs = FilteredElementCollector(doc)\
     .OfCategory(BuiltInCategory.OST_ElectricalCircuit)\
     .WhereElementIsNotElementType().ToElements()
 
+UnpluggedFakeCirs = list(filter(lambda x: not x.BaseEquipment and 'Щит' in list(x.Elements)[0].Name, elCirs))
 elCirs = list(filter(lambda x: x.BaseEquipment, elCirs))
 
 global branches
@@ -106,6 +107,8 @@ for panel in pCirs.keys():
         if depth not in deeps:
             deeps[depth] = []
         deeps[depth].append(cir)
+
+deeps[-1] = UnpluggedFakeCirs
 
 ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###
    ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###

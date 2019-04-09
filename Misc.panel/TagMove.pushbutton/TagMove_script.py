@@ -21,7 +21,7 @@ class CustomISelectionFilter(ISelectionFilter):
         self.nom_categorie = nom_categorie
 
     def AllowElement(self, e):
-        if e.Category.Name == self.nom_categorie:
+        if self.nom_categorie in e.Category.Name:
             return True
         else:
             return False
@@ -30,7 +30,7 @@ class CustomISelectionFilter(ISelectionFilter):
         return true
 
 try:
-    target = uidoc.Selection.PickObject(ObjectType.Element, CustomISelectionFilter("Марки стен"), 'Выберите целевую марку')
+    target = uidoc.Selection.PickObject(ObjectType.Element, CustomISelectionFilter("Марки"), 'Выберите целевую марку')
 except:  # Exceptions.OperationCanceledException:
     sys.exit()
 
@@ -49,11 +49,15 @@ if target.LeaderElbow.X < target.TagHeadPosition.X:
             tag.TagHeadPosition = target.TagHeadPosition
 else:
     for tag in tags:
-        if tag.LeaderElbow.X > tag.TagHeadPosition.X:
+        try:
+            if tag.LeaderElbow.X > tag.TagHeadPosition.X:
+                tag.LeaderElbow = target.LeaderElbow
+                tag.TagHeadPosition = target.TagHeadPosition
+            else:
+                tag.LeaderElbow -= tag.TagHeadPosition - target.TagHeadPosition
+                tag.TagHeadPosition = target.TagHeadPosition
+        except:
             tag.LeaderElbow = target.LeaderElbow
-            tag.TagHeadPosition = target.TagHeadPosition
-        else:
-            tag.LeaderElbow -= tag.TagHeadPosition - target.TagHeadPosition
             tag.TagHeadPosition = target.TagHeadPosition
 
 t.Commit()

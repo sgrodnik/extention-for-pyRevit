@@ -108,7 +108,7 @@ for panel in pCirs.keys():
             deeps[depth] = []
         deeps[depth].append(cir)
 
-deeps[-1] = UnpluggedFakeCirs
+# deeps[-1] = UnpluggedFakeCirs
 
 ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###
    ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###

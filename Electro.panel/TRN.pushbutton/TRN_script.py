@@ -247,7 +247,9 @@ for depth in sorted(deeps.keys(), reverse=True):
                     naim = param.AsString() if param else el.Name
                     naim = naim if naim else el.Name
                     naim = 'Розеточная сеть' if 'озетка' in naim else naim
+                    naim = 'Розетка заземления' if 'Розетка заземления' in el.Name else naim
                     naim = '(Распредкоробка)' if 'оробка' in naim else naim
+                    naim = naim.replace(', 220 В/220 В, Однофазная Тип системы, 3 Провода', '')
                     consumerNames.append(naim)
 
                     space = el.Space[doc.GetElement(el.CreatedPhaseId)]
@@ -257,7 +259,7 @@ for depth in sorted(deeps.keys(), reverse=True):
                     groupConsumerNames.extend(consumerNames)
 
                     param = el.LookupParameter('Кабель')
-                    cableNames.append(param.AsString() if param else 'ВВГнг(А)-LSLTx')
+                    cableNames.append(param.AsString() if param else '')
 
                     param = el.LookupParameter('Ком. аппарат')
                     # 'qf': 'Автоматический выключатель',
@@ -337,7 +339,10 @@ for depth in sorted(deeps.keys(), reverse=True):
 
             cableNames = natural_sorted(filter(lambda x: x, list(set(cableNames))))
             if len(cableNames) == 0:
-                cableName = 'ВВГнг(А)-LSLTx'
+                if 'IT' in groupNum or 'A' in groupNum or 'А' in groupNum:
+                    cableName = 'ВВГнг(А)-FRLSLTx'
+                else:
+                    cableName = 'ВВГнг(А)-LSLTx'
             elif len(cableNames) > 1:
                 for name in cableNames:
                     if '!' in name:
@@ -473,6 +478,7 @@ for depth in sorted(deeps.keys(), reverse=True):
                 ksr = cir.LookupParameter('Коэффициент спроса расчетный').AsDouble()
                 kodn = 1
                 ratedPower = totalPower / 10763.9104167097 * ksr * kodn
+                # if 'Щит' not in list(cir.Elements)[0].Name:  # Странно, почему потребовалась эта проверка
                 cir.LookupParameter('Расчетная мощность').Set(ratedPower)
                 tg = math.tan(math.acos(cos))
                 cir.LookupParameter('tg φ').Set(tg)
@@ -523,24 +529,47 @@ for depth in sorted(deeps.keys(), reverse=True):
 
     for panel in pcc.keys():
         for cluster in pcc[panel].keys():
+            # print(pcc[panel].keys())
             for cir in pcc[panel][cluster]:
                 if 'Щит' in list(cir.Elements)[0].Name:
-                    nagr = list(cir.Elements)[0]
-                    name = nagr.LookupParameter('Имя щита').AsString()
+                    panel2 = list(cir.Elements)[0]
+                    fakeCir = filter(lambda x: x.LookupParameter('Тип системы').AsValueString() == 'Данные', panel2.MEPModel.ElectricalSystems)
+                    fakeCir = fakeCir[0] if fakeCir else None
+                    name = panel2.LookupParameter('Имя щита').AsString()
                     cir.LookupParameter('Имя щита').Set(name if name else '-')
                     cir.LookupParameter('Номер группы').Set('‎') # Там есть невидимый символ
                     cir.LookupParameter('Имя нагрузки').Set('')
-                    cir.LookupParameter('Имя нагрузки группы').Set('‎                   Итого')
+                    cir.LookupParameter('Имя нагрузки группы').Set('‎                                    Итого')
                     power1 = 0
                     power2 = 0
                     Q = 0
-                    voltage = nagr.LookupParameter('Напряжение щита').AsDouble()
+                    voltage = panel2.LookupParameter('Напряжение щита').AsDouble()
                     U = 220 if voltage == 220 else 380
                     cir.LookupParameter('Напряжение цепи').Set(U)
-                    for cir in list(nagr.MEPModel.ElectricalSystems):
-                        power1 += cir.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097
-                        power2 += cir.LookupParameter('Расчетная мощность').AsDouble()
-                        Q += cir.LookupParameter('Q, квар').AsDouble()
+                    # for cir2 in list(panel2.MEPModel.ElectricalSystems):
+                    #     if cir2.Id != cir.Id:
+                    #         if fakeCir:
+                    #             if cir2.Id != fakeCir.Id:
+                    #                 power1 += cir2.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097
+                    #                 power2 += cir2.LookupParameter('Расчетная мощность').AsDouble()
+                    #         else:
+                    #             power1 += cir2.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097
+                    #             power2 += cir2.LookupParameter('Расчетная мощность').AsDouble()
+                    #     Q += cirIds2.LookupParameter('Q, квар').AsDouble()
+                    for cir2 in list(panel2.MEPModel.ElectricalSystems):
+                        Q += cir2.LookupParameter('Q, квар').AsDouble()
+                        if cir2.Id == cir.Id: continue
+                        if fakeCir:
+                            if cir2.Id == fakeCir.Id: continue
+                        if 'Итого' in cir2.LookupParameter('Имя нагрузки группы').AsString():
+                            ks = list(cir2.Elements)[0].LookupParameter('Коэффициент спроса расчетный для щита').AsDouble()
+                            print(ks)
+                            print(cir2.Id)
+                            power1 += cir2.LookupParameter('Расчетная мощность').AsDouble()
+                            power2 += cir2.LookupParameter('Расчетная мощность').AsDouble() * ks * 1
+                        else:
+                            power1 += cir2.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097
+                            power2 += cir2.LookupParameter('Расчетная мощность').AsDouble()
                     cir.LookupParameter('Суммарная мощность группы').Set(power1 * 10763.9104167097)
                     cir.LookupParameter('Расчетная мощность').Set(power2)
                     cir.LookupParameter('Q, квар').Set(Q)
@@ -548,14 +577,33 @@ for depth in sorted(deeps.keys(), reverse=True):
                     cir.LookupParameter('S, кВА').Set(S)
                     I = S / math.sqrt(3) / U * 1000 if U == 380 else S / U * 1000
                     cir.LookupParameter('Iр, А').Set(I)
-                    ks = power2 / power1
-                    # print(power1, power2, ks)
+                    try:
+                        ks = power2 / power1
+                    except:
+                        ks = 0
                     cir.LookupParameter('Коэффициент спроса расчетный').Set(ks)
-                    cos = power2 / S
+                    try:
+                        cos = power2 / S
+                    except:
+                        cos = 0
                     cir.LookupParameter('Cos φ').Set(cos)
                     tg = math.tan(math.acos(cos))
                     cir.LookupParameter('tg φ').Set(tg)
-                    ### взять напряжение от дочерних цепей - сделано, но надо уточнить у Димы, меняется ли формула!
+
+                    if fakeCir:
+                        name2 = cir.BaseEquipment.LookupParameter('Имя щита').AsString()
+                        ks = panel2.LookupParameter('Коэффициент спроса расчетный для щита').AsDouble()
+                        fakeCir.LookupParameter('Имя щита').Set(name2 if name2 else '-')
+                        fakeCir.LookupParameter('Номер группы').Set(name)
+                        fakeCir.LookupParameter('Имя нагрузки').Set(name)
+                        fakeCir.LookupParameter('Имя нагрузки группы').Set(name)
+                        fakeCir.LookupParameter('Напряжение цепи').Set(U)
+                        fakeCir.LookupParameter('Суммарная мощность группы').Set(power2 * 10763.9104167097)
+                        fakeCir.LookupParameter('Расчетная мощность').Set(power2 * ks * 1)
+                        fakeCir.LookupParameter('Коэффициент спроса расчетный').Set(ks)
+                        fakeCir.LookupParameter('Cos φ').Set(cos)
+                        fakeCir.LookupParameter('tg φ').Set(tg)
+
             # spaces = filter(lambda x: '-' not in x, spaces)
             # names = filter(lambda x: 'оробка' not in x, names)
             # for branch in pcb[panel][group]:

@@ -487,7 +487,7 @@ for depth in sorted(deeps.keys(), reverse=True):
 
                 ############################################################################### В элементы цепи
                 for el in list(cir.Elements):
-                    el.LookupParameter('Номер группы').Set(groupNum)
+                    el.LookupParameter('Номер группы').Set(groupNum) if 'Щит' not in el.Name else None
                     el.LookupParameter('Кабель').Set(cableName) if el.LookupParameter('Кабель') else 1
                     el.LookupParameter('Ком. аппарат').Set(cApp) if el.LookupParameter('Ком. аппарат') else 1
                     el.LookupParameter('Коэффициент спроса').Set(ks) if el.LookupParameter('Коэффициент спроса') else 1
@@ -557,17 +557,16 @@ for depth in sorted(deeps.keys(), reverse=True):
                     #             power2 += cir2.LookupParameter('Расчетная мощность').AsDouble()
                     #     Q += cirIds2.LookupParameter('Q, квар').AsDouble()
                     for cir2 in list(panel2.MEPModel.ElectricalSystems):
-                        Q += cir2.LookupParameter('Q, квар').AsDouble()
                         if cir2.Id == cir.Id: continue
                         if fakeCir:
                             if cir2.Id == fakeCir.Id: continue
                         if 'Итого' in cir2.LookupParameter('Имя нагрузки группы').AsString():
                             ks = list(cir2.Elements)[0].LookupParameter('Коэффициент спроса расчетный для щита').AsDouble()
-                            print(ks)
-                            print(cir2.Id)
+                            Q += cir2.LookupParameter('Расчетная мощность').AsDouble() * ks * cir2.LookupParameter('tg φ').AsDouble()
                             power1 += cir2.LookupParameter('Расчетная мощность').AsDouble()
                             power2 += cir2.LookupParameter('Расчетная мощность').AsDouble() * ks * 1
                         else:
+                            Q += cir2.LookupParameter('Q, квар').AsDouble()
                             power1 += cir2.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097
                             power2 += cir2.LookupParameter('Расчетная мощность').AsDouble()
                     cir.LookupParameter('Суммарная мощность группы').Set(power1 * 10763.9104167097)
@@ -594,7 +593,8 @@ for depth in sorted(deeps.keys(), reverse=True):
                         name2 = cir.BaseEquipment.LookupParameter('Имя щита').AsString()
                         ks = panel2.LookupParameter('Коэффициент спроса расчетный для щита').AsDouble()
                         fakeCir.LookupParameter('Имя щита').Set(name2 if name2 else '-')
-                        fakeCir.LookupParameter('Номер группы').Set(name)
+                        num = panel2.LookupParameter('Номер группы').AsString()
+                        fakeCir.LookupParameter('Номер группы').Set(num if num else name)
                         fakeCir.LookupParameter('Имя нагрузки').Set(name)
                         fakeCir.LookupParameter('Имя нагрузки группы').Set(name)
                         fakeCir.LookupParameter('Напряжение цепи').Set(U)
@@ -603,13 +603,7 @@ for depth in sorted(deeps.keys(), reverse=True):
                         fakeCir.LookupParameter('Коэффициент спроса расчетный').Set(ks)
                         fakeCir.LookupParameter('Cos φ').Set(cos)
                         fakeCir.LookupParameter('tg φ').Set(tg)
-
-            # spaces = filter(lambda x: '-' not in x, spaces)
-            # names = filter(lambda x: 'оробка' not in x, names)
-            # for branch in pcb[panel][group]:
-            #     for cir in branch:
-            #         cir.LookupParameter('Помещения группы').Set('; '.join(natural_sorted(set(spaces))))
-            #         cir.LookupParameter('Имя нагрузки группы').Set('; '.join(natural_sorted(set(names))))
+                        fakeCir.LookupParameter('Q, квар').Set(power2 * ks * 1 * tg)
 
 ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###
    ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Расчёт таблицы рассчета нагрузок"""
+"""Расчёт таблицы рассчёта нагрузок"""
 __title__ = 'Расчет\nТРН'
 __author__ = 'SG'
 
@@ -46,6 +46,115 @@ def natural_sorted(list, key=lambda s: s):
         return lambda s: [convert(c) for c in re.split('([0-9]+)', key(s))]
     sort_key = get_alphanum_key_func(key)
     return sorted(list, key=sort_key)
+
+
+def draw(panels):
+    els = FilteredElementCollector(doc)\
+        .OfCategory(BuiltInCategory.OST_GenericAnnotation)\
+        .WhereElementIsNotElementType()\
+        .ToElements()
+
+    # for el in els:
+    #     if el.Name == 'Цепь' or el.Name == 'Щит':
+    #         doc.Delete(el.Id)
+
+    anns = FilteredElementCollector(doc)\
+        .OfCategory(BuiltInCategory.OST_GenericAnnotation)\
+        .WhereElementIsElementType()\
+        .ToElements()
+
+    cirFamily = list(filter(lambda x: x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM)
+                                       .AsString() == 'Цепь', anns))[0]
+    panelFamily = list(filter(lambda x: x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM)
+                                         .AsString() == 'Щит', anns))[0]
+
+    views = FilteredElementCollector(doc)\
+        .OfCategory(BuiltInCategory.OST_Views)\
+        .WhereElementIsNotElementType()\
+        .ToElements()
+    activeView = 0
+    for i in views:
+        if i.Name == 'Чертежный вид 1':
+            activeView = i
+    if not activeView:
+        raise Exception('No view to draw')
+    # activeView = doc.ActiveView
+    if doc.ActiveView.Name != 'Чертежный вид 1': return
+
+    cApps = {
+        'qf': 'Автоматический выключатель',
+        'QF': 'Автоматический выключатель 2P',
+        'QS': 'Выключатель',
+        'QFD': 'Дифф',
+        'KM': 'Контактор',
+        'FU': 'Плавкая вставка',
+        'QSU': 'Рубильник с плавкой вставкой',
+        'QD': 'УЗО'}
+
+    for y, panel in enumerate(natural_sorted(filter(lambda x: doc.GetElement(x).LookupParameter('Имя щита').AsString(), panels.keys()), key=lambda x: doc.GetElement(x).LookupParameter('Имя щита').AsString())):
+        el = doc.Create.NewFamilyInstance(XYZ(0, -y * 250 / k, 0), panelFamily, activeView)
+        el.LookupParameter('Имя щита').Set(doc.GetElement(panel).LookupParameter('Имя щита').AsString())
+        # headCirs = filter(lambda x: 'Щит' in x.BaseEquipment.Name, natural_sorted(panels[panel], key=lambda x: x.LookupParameter('Номер группы').AsString()))
+        headCirs = []
+        for cir in natural_sorted(panels[panel], key=lambda x: x.LookupParameter('Номер группы').AsString()):
+            if not cir.BaseEquipment or ('Щит' in cir.BaseEquipment.Name and 'Итого' not in cir.LookupParameter('Имя нагрузки группы').AsString()):
+                headCirs.append(cir)
+        # headCirs = filter(lambda x: 'Щит' in x.BaseEquipment.Name, natural_sorted(panels[panel], key=lambda x: x.LookupParameter('Номер группы').AsString()))
+        # print headCirs[0]
+        # print headCirs[0].Id
+        res = headCirs[0].BaseEquipment.LookupParameter('Резерв').AsInteger()
+        # n = len(list(headCirs[0].BaseEquipment.MEPModel.ElectricalSystems))  # Продираемся до щита и считаем количество его цепей
+        n = 0
+        # print('------------')
+        # print(el.LookupParameter('Имя щита').AsString())
+        # for cir in list(headCirs[0].BaseEquipment.MEPModel.ElectricalSystems):
+        #     print('{} {}'.format(n, cir.LookupParameter('Номер группы').AsString()))
+        #     # if cir.LookupParameter('Тип системы').AsValueString() == 'Данные': continue
+        #     n += 1
+        n = len(headCirs)
+        el.LookupParameter('Ширина рамки').Set((n + res) * 16 / k)
+        minNom = 99999999
+        minChar = 'D'
+        for x, cir in enumerate(headCirs + range(res)):
+            if type(cir) != type(1):
+                el = doc.Create.NewFamilyInstance(XYZ(x * 16 / k, -y * 250 / k, 0), cirFamily, activeView)
+                el.LookupParameter('Номер группы').Set(cir.LookupParameter('Номер группы').AsString())
+                el.LookupParameter('Расчетная мощность').Set(round(cir.LookupParameter('Суммарная мощность группы').AsDouble() / 10763.9104167097, 2))
+                el.LookupParameter('Cos φ').Set(round(cir.LookupParameter('Cos φ').AsDouble(), 2))
+                el.LookupParameter('Ток').Set(round(cir.LookupParameter('Ток').AsDouble(), 2))
+                el.LookupParameter('Падение группы').Set(round(cir.LookupParameter('Падение группы').AsDouble(), 2))
+                el.LookupParameter('Длина расчетная').Set(round(cir.LookupParameter('Длина расчетная').AsDouble() / 1000, 0))
+
+                nom = round(cir.LookupParameter('Номинал аппарата защиты').AsDouble(), 0)
+                if minNom > nom: minNom = nom
+                char = cir.LookupParameter('Характеристика аппарата защиты').AsString()
+                if char == 'C': minChar = 'C'
+                el.LookupParameter('Номинал аппарата защиты').Set(nom)
+                # print 909
+                # print char
+                el.LookupParameter('Характеристика аппарата защиты').Set(char)
+
+                el.LookupParameter('Напряжение цепи').Set(round(cir.LookupParameter('Напряжение цепи').AsDouble(), 0))
+                el.LookupParameter('Имя нагрузки').Set(cir.LookupParameter('Имя нагрузки группы').AsString())
+                el.LookupParameter('Цепи').Set(cir.LookupParameter('Цепи').AsString() if cir.LookupParameter('Цепи').AsString() else str(cir.Id.IntegerValue))
+                sech = '{:.1f}'.format(cir.LookupParameter('Сечение кабеля').AsDouble()).replace('.0', '')
+                n = 3 if cir.LookupParameter('Напряжение цепи').AsDouble() == 220 else 5
+                name = cir.LookupParameter('Кабель').AsString()
+                el.LookupParameter('Кабель').Set('{} {}x{}'.format(name, n, sech.replace('.', ',')))
+                # el.LookupParameter('Номер фазы').Set('666')
+                el.LookupParameter('Номер фазы').Set(cir.LookupParameter('Номер фазы').AsString() if cir.LookupParameter('Номер фазы').AsString() else '?')
+                el.LookupParameter('Помещения группы').Set(cir.LookupParameter('Помещения группы').AsString().replace('; -', ''))
+                el.LookupParameter(cApps[cir.LookupParameter('Ком. аппарат').AsString()]).Set(1)
+                el.LookupParameter('Ком. аппарат подпись').Set(cir.LookupParameter('Ком. аппарат').AsString().replace('qf', 'QF'))
+            else:
+                el = doc.Create.NewFamilyInstance(XYZ(x * 16 / k, -y * 250 / k, 0), cirFamily, activeView)
+                el.LookupParameter('Имя нагрузки').Set('Резерв')
+                el.LookupParameter('Характеристика аппарата защиты').Set(minChar)
+                el.LookupParameter('Номинал аппарата защиты').Set(minNom)
+                el.LookupParameter('Номер фазы').Set('L1')
+                el.LookupParameter('Основные').Set(0)
+                el.LookupParameter('Автоматический выключатель').Set(1)
+
 
 fuse = 0
 def find_depth(cir, counter):
@@ -108,6 +217,8 @@ for panel in pCirs.keys():
             deeps[depth] = []
         deeps[depth].append(cir)
 
+cirsToDraw = {}
+
 # deeps[-1] = UnpluggedFakeCirs
 
 ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###
@@ -147,6 +258,8 @@ for depth in sorted(deeps.keys(), reverse=True):
 
     for i in pCirs.keys():
         pCirs[i] = list(set(pCirs[i]))
+
+    cirsToDraw.update(pCirs)
 
     # for cir in elCirs:
     #     if cir.BaseEquipment.Id not in deeps:
@@ -520,14 +633,7 @@ for depth in sorted(deeps.keys(), reverse=True):
                 cir.LookupParameter('Перекос фаз').Set(phaseShift)
                 cir.LookupParameter('Ток по фазам').Set('{:.2f}, {:.2f}, {:.2f}'.format(float(a), float(b), float(c)).replace('.', ','))
 
-    for panel in pcc.keys():
-        appNumber = doc.GetElement(panel).LookupParameter('Номер аппарата защиты').AsInteger()
-        for cluster in natural_sorted(pcc[panel].keys(), key=lambda x: x.LookupParameter('Номер группы').AsString()):
-            appNumber += 1
-            for cir in pcc[panel][cluster]:
-                cir.LookupParameter('Номер аппарата защиты').Set(appNumber)
-
-    for panel in pcc.keys():
+    for panel in pcc.keys():  # Просчет Итого и дублирующих их фейковых цепей (Данные)
         for cluster in pcc[panel].keys():
             # print(pcc[panel].keys())
             for cir in pcc[panel][cluster]:
@@ -544,7 +650,7 @@ for depth in sorted(deeps.keys(), reverse=True):
                     power2 = 0
                     Q = 0
                     voltage = panel2.LookupParameter('Напряжение щита').AsDouble()
-                    U = 220 if voltage == 220 else 380
+                    U = 220.0 if voltage == 220 else 380.0
                     cir.LookupParameter('Напряжение цепи').Set(U)
                     # for cir2 in list(panel2.MEPModel.ElectricalSystems):
                     #     if cir2.Id != cir.Id:
@@ -589,6 +695,21 @@ for depth in sorted(deeps.keys(), reverse=True):
                     tg = math.tan(math.acos(cos))
                     cir.LookupParameter('tg φ').Set(tg)
 
+                    cir.LookupParameter('Характеристика аппарата защиты').Set('D' if power1 * 10763.9104167097 >= 3 else 'C')
+                    P = power1
+                    I = P / (U / 1000 * cos * 1.7320508075688772) if U == 380 else P / (U / 1000 * cos)
+                    # print('{} {} {} {}'.format(name, P, U, cos))
+                    # cir.LookupParameter('Ток на участке').Set(I)
+                    cir.LookupParameter('Ток').Set(I)
+                    for i in range(len(noms)):
+                        if sorted(noms.keys())[i] >= I:
+                            nom = sorted(noms.keys())[i]
+                            fakeNom = sorted(noms.keys())[i+1]
+                            cir.LookupParameter('Номинал аппарата защиты').Set(nom)
+                            break
+                    cir.LookupParameter('Сечение кабеля').Set(noms[nom])
+
+
                     if fakeCir:
                         name2 = cir.BaseEquipment.LookupParameter('Имя щита').AsString()
                         ks = panel2.LookupParameter('Коэффициент спроса расчетный для щита').AsDouble()
@@ -604,6 +725,30 @@ for depth in sorted(deeps.keys(), reverse=True):
                         fakeCir.LookupParameter('Cos φ').Set(cos)
                         fakeCir.LookupParameter('tg φ').Set(tg)
                         fakeCir.LookupParameter('Q, квар').Set(power2 * ks * 1 * tg)
+
+                        fakeCir.LookupParameter('Характеристика аппарата защиты').Set('D' if power2 * 10763.9104167097 >= 3 else 'C')
+                        space = panel2.Space[doc.GetElement(panel2.CreatedPhaseId)]
+                        fakeCir.LookupParameter('Помещения группы').Set(space.Number if space else '')
+                        param = panel2.LookupParameter('Ком. аппарат')
+                        fakeCir.LookupParameter('Ком. аппарат').Set(param.AsString() if param else 'QF')
+                        fakeCir.LookupParameter('Номинал аппарата защиты').Set(fakeNom)
+                        fakeCir.LookupParameter('Сечение кабеля').Set(noms[fakeNom])
+                        fakeCir.LookupParameter('Ток').Set(I)
+
+                        cirsToDraw[panel].append(fakeCir)
+
+    for panel in pcc.keys():
+        appNumber = doc.GetElement(panel).LookupParameter('Номер аппарата защиты').AsInteger()
+        for cluster in natural_sorted(pcc[panel].keys(), key=lambda x: x.LookupParameter('Номер группы').AsString()):
+            # if 'Итого' not in pcc[panel][cluster][0].LookupParameter('Имя нагрузки группы').AsString():
+            appNumber += 1
+            # print('{} {}'.format(appNumber, pcc[panel][cluster][0].LookupParameter('Номер группы').AsString()))
+            for cir in pcc[panel][cluster]:
+                cir.LookupParameter('Номер аппарата защиты').Set(appNumber)
+# for panel in natural_sorted(pCirs.keys()):
+        # print(doc.GetElement(panel).LookupParameter('Имя щита').AsString())
+
+draw(cirsToDraw)
 
 ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###
    ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###   ###

@@ -44,7 +44,8 @@ t = Transaction(doc, 'Отметка воздуховода')
 t.Start()
 
 for el in sel:
-    el.LookupParameter('Смещение').Set(target.LookupParameter('Смещение').AsDouble())
+    if el.LookupParameter('Смещение'):
+        el.LookupParameter('Смещение').Set(target.LookupParameter('Смещение').AsDouble())
 
 #k = 304.8
 

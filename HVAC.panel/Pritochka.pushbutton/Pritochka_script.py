@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Otverstie"""
-__title__ = 'Выбрать приток'
+""""""
+__title__ = 'Выбрать\nприток'
 __author__ = 'SG'
 
 import clr
@@ -12,7 +12,7 @@ from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Transac
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
 
-t = Transaction(doc, 'Выбрать\nприток')
+t = Transaction(doc, 'Выбрать приток')
 t.Start()
 
 k = 304.8

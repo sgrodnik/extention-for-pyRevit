@@ -1,5 +1,6 @@
 ﻿# -*- coding: utf-8 -*-
-""""""
+"""Номера с точкой или с буквами: части после точки и буквы не будут изменены.
+Номера с запятой: сменятся целими числами (части после запятой будут стёрты)"""
 __title__ = 'Нумеровать\nлисты'
 __author__ = 'SG'
 
@@ -18,36 +19,92 @@ def natural_sorted(list, key=lambda s: s):
     Sort the list into natural alphanumeric order.
     """
     def get_alphanum_key_func(key):
-        convert = lambda text: int(text) if text.isdigit() else text
+        def convert(text): return int(text) if text.isdigit() else text
         return lambda s: [convert(c) for c in re.split('([0-9]+)', key(s))]
     sort_key = get_alphanum_key_func(key)
     return sorted(list, key=sort_key)
 
 
 sheets = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Sheets).ToElements()
-sheets = [i for i in sheets \
-    if 1 \
-    and i.LookupParameter('Имя листа').AsString() != 'Начальный вид']
+sheets = [i for i in sheets
+          if i.LookupParameter('Имя листа').AsString() != 'Начальный вид']
+
+sel = [el for el in [doc.GetElement(id) for id in uidoc.Selection.GetElementIds()] if el.Category.Name == 'Листы']
+
+if len(sel) > 1:
+    sheets = sel
+
+# for i in natural_sorted(sheets, key = lambda x: x.SheetNumber.replace('‎', '')):
+#   print(i.SheetNumber)
 
 ###########################################
 
-ids = []
-for i in sorted(sheets, key=lambda x: (float(x.SheetNumber))):
-    ids.append(i.Id)
+digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-t = Transaction(doc, "Нумератор листов")
+
+def splitNumber(number):
+    number = number.replace('.', 'dot').replace(',', '.')
+    i = 0
+    for char in number:
+        if char == '‎':
+            i += 1
+        else:
+            break
+    nameWithoutPrefix = number[i:]
+    j = 0
+    for char in nameWithoutPrefix:
+        if char in digits or char == '.':
+            j += 1
+        else:
+            break
+    return number[:i], nameWithoutPrefix[:j], nameWithoutPrefix[j:].replace('dot', '.')
+
+
+class sheet():
+    def __init__(self, revitsSheet):
+        self.reference = revitsSheet
+        self.oldNumber = revitsSheet.SheetNumber
+        self.prefix, self.number, self.suffix = splitNumber(revitsSheet.SheetNumber)
+
+    def __str__(self):
+        return 'mySheet {}/{}/{} : {}/{}/{}'.format(self.prefix, self.number, self.suffix, len(self.prefix), len(self.number), len(self.suffix))
+
+parts = {}
+for s in sheets:
+    part = s.LookupParameter('ADSK_Штамп Раздел проекта').AsString()
+    if part not in parts:
+        parts[part] = []
+    parts[part].append(s)
+
+t = Transaction(doc, "Нумеровать листы")
 t.Start()
 
-i = 1
-for id in ids:
-    doc.GetElement(id).SheetNumber = 'q' + str(i)
-    # print('{}\t{}'.format(doc.GetElement(id).SheetNumber, i))
-    i += 1
+for part in sorted(parts.keys()):
+    print('\n-------------- ' + part + ' --------------')
 
-i = 1
-for id in ids:
-    doc.GetElement(id).SheetNumber = str(i)
-    i += 1
+    mySheets = []
+    for i in natural_sorted(parts[part], key=lambda x: x.SheetNumber.replace('‎', '')):
+        sh = sheet(i)
+        mySheets.append(sh)
+
+    i = 1
+    for sh in mySheets:
+        i = i + 1
+        sh.reference.SheetNumber = 'temp' + str(i)
+
+    firstRun = 1
+    i = float(mySheets[0].number)
+    for sh in mySheets:
+        delta = 0 if sh.suffix else 1
+        if firstRun:
+            firstRun = 0
+            delta = 0
+        i = i + delta
+        new = mySheets[0].prefix + '{:.0f}'.format(i) + sh.suffix
+        old = sh.oldNumber.replace('‎', '·')
+        change = ' !' if new.replace('‎', '·') != old else ''
+        print('{}-> {}{}'.format(old.ljust(5, fillchar=' '), new.replace('‎', '·').ljust(5, fillchar=' '), change))
+        sh.reference.SheetNumber = new
 
 t.Commit()
 

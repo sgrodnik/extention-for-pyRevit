@@ -6,7 +6,7 @@ import clr
 clr.AddReference('System.Core')
 from System.Collections.Generic import *
 from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, ElementId
-from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
+
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
 
@@ -17,6 +17,7 @@ k2 = 1000000 / k**2  # 10.763910416709722
 els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType().ToElements()
 
 t = Transaction(doc, 'КД')
+
 t.Start()
 
 for el in els:

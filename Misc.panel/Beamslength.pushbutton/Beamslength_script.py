@@ -29,19 +29,6 @@ for el in els:
     if not el.LookupParameter('Этап').HasValue:
         el.LookupParameter('Этап').Set(999 * k2)
 
-# i = 1
-# dct = {}
-# for el in els:
-#     part = el.LookupParameter('Этап').AsDouble()
-#     if part not in dct.keys():
-#         dct[part] = {}
-#     dct[part] = {}
-#     name = el.LookupParameter('Наименование').AsString()
-#     if name not in dct[part].keys():
-#         dct[part][name] = []
-#     dct[part][name].append(el)
-#     i += 1
-
 
 els = [el for el in sorted(els, key=lambda x: x.LookupParameter('Фактическая длина').AsDouble(), reverse=True)]
 els = [el for el in sorted(els, key=lambda x: float('.'.join(map(lambda x: '{:0>5}'.format(x), x.LookupParameter('Наименование').AsString().split('×')))), reverse=True)]

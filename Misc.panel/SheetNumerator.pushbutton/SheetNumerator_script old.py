@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Номера с точкой или с буквами: части после точки и буквы не будут изменены.
 Номера с запятой: сменятся целими числами (части после запятой будут стёрты)"""
 __title__ = 'Нумеровать\nлисты'
@@ -63,37 +63,21 @@ def splitNumber(number):
 class sheet():
     def __init__(self, revitsSheet):
         self.reference = revitsSheet
-        self.oldNumber = revitsSheet.SheetNumber.replace('temp', '')
-        self.prefix, self.number, self.suffix = splitNumber(revitsSheet.SheetNumber.replace('temp', ''))
+        self.oldNumber = revitsSheet.SheetNumber
+        self.prefix, self.number, self.suffix = splitNumber(revitsSheet.SheetNumber)
 
     def __str__(self):
         return 'mySheet {}/{}/{} : {}/{}/{}'.format(self.prefix, self.number, self.suffix, len(self.prefix), len(self.number), len(self.suffix))
 
 parts = {}
 for s in sheets:
-    if s.LookupParameter('ADSK_Штамп Раздел проекта'):
-        part = s.LookupParameter('ADSK_Штамп Раздел проекта').AsString()
-    else:
-        part = s.LookupParameter('Раздел проекта').AsString()
+    part = s.LookupParameter('ADSK_Штамп Раздел проекта').AsString()
     if part not in parts:
         parts[part] = []
     parts[part].append(s)
 
 t = Transaction(doc, "Нумеровать листы")
 t.Start()
-
-j = 1
-for part in sorted(parts.keys()):
-    # print('\n-------------- ' + part + ' --------------')
-
-    mySheets = []
-    for i in natural_sorted(parts[part], key=lambda x: x.SheetNumber.replace('‎', '')):
-        sh = sheet(i)
-        mySheets.append(sh)
-
-    for sh in mySheets:
-        j = j + 1
-        sh.reference.SheetNumber += 'temp'
 
 for part in sorted(parts.keys()):
     print('\n-------------- ' + part + ' --------------')
@@ -102,9 +86,12 @@ for part in sorted(parts.keys()):
     for i in natural_sorted(parts[part], key=lambda x: x.SheetNumber.replace('‎', '')):
         sh = sheet(i)
         mySheets.append(sh)
-    # print(111)
-    # print(mySheets[0].number)
-    # print(222)
+
+    i = 1
+    for sh in mySheets:
+        i = i + 1
+        sh.reference.SheetNumber = 'temp' + str(i)
+
     firstRun = 1
     i = float(mySheets[0].number)
     for sh in mySheets:

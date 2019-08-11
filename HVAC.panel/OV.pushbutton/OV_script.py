@@ -504,8 +504,9 @@ output = script.get_output()
 equipmentsSizes = []
 for i in equipments:
     typeMarka = doc.GetElement(i.GetTypeId()).LookupParameter('Маркировка типоразмера').AsString()
-    link = output.linkify(i.Id, i.Name + ': ' + (doc.GetElement(i.GetTypeId()).LookupParameter('Описание').AsString()[:25] if doc.GetElement(i.GetTypeId()).LookupParameter('Описание') else '?'))
-    print('Ошибка: не следует использовать "Маркировка типоразмера". Следует применять "Комментарии к типоразмеру" {}'.format(link))
+    if typeMarka:
+        link = output.linkify(i.Id, i.LookupParameter('Имя системы').AsString() + ': ' + i.Name + ': ' + (doc.GetElement(i.GetTypeId()).LookupParameter('Описание').AsString()[:25] if doc.GetElement(i.GetTypeId()).LookupParameter('Описание') else '?'))
+        print('Ошибка: не следует использовать "Маркировка типоразмера". Следует применять "Комментарии к типоразмеру" {}'.format(link))
     typeMarka = doc.GetElement(i.GetTypeId()).LookupParameter('Комментарии к типоразмеру').AsString()
     if typeMarka:
         equipmentsSizes.append(typeMarka)

@@ -16,18 +16,28 @@ k2 = 1000000 / k**2  # 10.763910416709722
 
 els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType().ToElements()
 
+els = [i for i in els if i.LookupParameter('Использование в конструкции').AsValueString() != 'Горизонтальный раскос']
+
 t = Transaction(doc, 'КД')
 
 t.Start()
 
 # Заполнение наименований экземпляров Каркаса несущего (КН)
 for el in els:
-    el.LookupParameter('Длина факт').Set('{:.0f}'.format(el.LookupParameter('Фактическая длина').AsDouble() * k))
+    dimL = el.LookupParameter('Фактическая длина').AsDouble() * k
+    el.LookupParameter('Длина факт').Set('{:.0f}'.format(dimL))
     dimB = el.LookupParameter('ADSK_Размер_Высота').AsDouble() * k
     dimH = el.LookupParameter('ADSK_Размер_Ширина').AsDouble() * k
     name = '{:.0f}×{:.0f}'.format(min([dimB, dimH]), max([dimB, dimH]))
     el.LookupParameter('Наименование').Set(name)
+    el.LookupParameter('Наименование СМ').Set(name)
     el.LookupParameter('Наименование краткое').Set(name)
+    zapas = 1.0 if 'Кле' in el.LookupParameter('Тип').AsValueString() else 1.1
+    el.LookupParameter('ХТ Длина ОВ').Set(dimL * dimB * dimH / 1000000000 * zapas)
+    # else:
+    #     dimL = el.LookupParameter('Фактическая длина').AsDouble() * k
+    #     el.LookupParameter('ХТ Длина ОВ').Set(dimL / 1000)
+
 
     if not el.LookupParameter('Этап').HasValue:
         el.LookupParameter('Этап').Set(999 * k2)
@@ -108,18 +118,20 @@ for el in els:
     name = el.LookupParameter('Наименование').AsString()
 
     for q_param in q_params.keys():
-        if name in values[q_params[q_param]].keys():
-            el.LookupParameter(q_param).Set('{:.3f}'.format(sum(values[q_params[q_param]][name]) / k1).replace('.', ','))
-          # el.LookupParameter('q1')   .Set('{:.3f}'.format(sum(values[1 * k2           ][name]) / k1).replace('.', ','))  <-<-<- Example -<-<-<
-        else:
-            el.LookupParameter(q_param).Set('')
-          # el.LookupParameter('q1'   ).Set('')  <-<-<- Example -<-<-<
+        if q_params[q_param] in values.keys():
+            if name in values[q_params[q_param]].keys():
+                el.LookupParameter(q_param).Set('{:.3f}'.format(sum(values[q_params[q_param]][name]) / k1).replace('.', ','))
+              # el.LookupParameter('q1')   .Set('{:.3f}'.format(sum(values[1 * k2           ][name]) / k1).replace('.', ','))  <-<-<- Example -<-<-<
+            else:
+                el.LookupParameter(q_param).Set('')
+              # el.LookupParameter('q1'   ).Set('')  <-<-<- Example -<-<-<
 
     total = 0
     for q_param in sorted(q_params.keys()):
-        if name in values[q_params[q_param]].keys():
-            total += sum(values[q_params[q_param]][name])
-            # print(total / k1)
+        if q_params[q_param] in values.keys():
+            if name in values[q_params[q_param]].keys():
+                total += sum(values[q_params[q_param]][name])
+                # print(total / k1)
     el.LookupParameter('q999').Set('{:.3f}'.format(total / k1).replace('.', ','))
 
 partNames = {
@@ -156,7 +168,16 @@ for el in els:
     comms = param.AsString() if param.HasValue else ''
     param = doc.GetElement(el.GetTypeId()).LookupParameter('Группа модели')
     group = param.AsString() if param.HasValue else ''
-    el.LookupParameter('Наименование').Set('{} {}'.format(description, comms))
+    if description == 'Шпилька резьбовая':
+        diam = el.LookupParameter('D').AsDouble() * k
+        length = el.LookupParameter('L').AsDouble() * k + el.LookupParameter('b').AsDouble() * k
+        comms = 'М{:.0f}'.format(diam)
+        el.LookupParameter('Длина факт').Set('{:.0f}'.format(length))
+        el.LookupParameter('Наименование').Set('{} {}, L{:.0f}'.format(description, comms, length))
+        el.LookupParameter('Наименование СМ').Set('{} {}'.format(description, comms))
+    else:
+        el.LookupParameter('Наименование').Set('{} {}'.format(description, comms))
+        el.LookupParameter('Наименование СМ').Set('{} {}'.format(description, comms))
     el.LookupParameter('Наименование краткое').Set('{} {}'.format(group, comms))
     # el.LookupParameter('Наименование краткое').Set('{}'.format(group))
 
@@ -173,7 +194,7 @@ for el in els:
     part = el.LookupParameter('Этап').AsDouble()
     if part not in structCons.keys():
         structCons[part] = {}
-    name = el.LookupParameter('Наименование').AsString()
+    name = el.LookupParameter('Наименование СМ').AsString()
     if name not in structCons[part].keys():
         structCons[part][name] = []
     structCons[part][name].append(el)
@@ -182,7 +203,7 @@ for el in els:
 
 # Подсчёт СНК по этапам и суммарный, а также запись
 for el in els:
-    name = el.LookupParameter('Наименование').AsString()
+    name = el.LookupParameter('Наименование СМ').AsString()
 
     for q_param in sorted(q_params.keys()):
         # print(q_param)
@@ -190,7 +211,10 @@ for el in els:
             # print(1)
             if name in structCons[q_params[q_param]].keys():
                 # print('{}'.format(len(structCons[q_params[q_param]][name])))
-                el.LookupParameter(q_param).Set('{}'.format(len(structCons[q_params[q_param]][name])))
+                if structCons[q_params[q_param]][name][0].Name == 'Закладная шпилька':
+                    el.LookupParameter(q_param).Set('{:.1f}'.format(sum(map(lambda x: x.LookupParameter('L').AsDouble() * k + x.LookupParameter('b').AsDouble() * k, structCons[q_params[q_param]][name])) / 1000).replace('.', ','))
+                else:
+                    el.LookupParameter(q_param).Set('{}'.format(len(structCons[q_params[q_param]][name])))
               # el.LookupParameter('q1'   ).Set('{}'.format(len(structCons[1 * k2]           [name])).replace('.', ','))  <-<-<- Example -<-<-<
             else:
                 # print(el.Id)
@@ -202,8 +226,15 @@ for el in els:
         if q_params[q_param] in structCons.keys():
             # print(123)
             if name in structCons[q_params[q_param]].keys():
-                total += len(structCons[q_params[q_param]][name])
-    el.LookupParameter('q999').Set('{}'.format(total))
+                if structCons[q_params[q_param]][name][0].Name == 'Закладная шпилька':
+                    total += sum(map(lambda x: x.LookupParameter('L').AsDouble() * k + x.LookupParameter('b').AsDouble() * k, structCons[q_params[q_param]][name])) / 1000
+                else:
+                    total += len(structCons[q_params[q_param]][name])
+    # total = round()
+    if isinstance(total, int):
+        el.LookupParameter('q999').Set('{}'.format(total))
+    else:
+        el.LookupParameter('q999').Set('{:.1f}'.format(total).replace('.', ','))
 
 # Конвертация числового этапа в строковый
 for el in els:
@@ -250,30 +281,39 @@ fakes = [el for el in els if el.LookupParameter('Семейство').AsValueStr
 for fake in fakes:
     if fake.LookupParameter('Тип').AsValueString() == 'Длина конька':
         fake.LookupParameter('q999').Set('{:.1f}'.format(lengthKon * k / 1000).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(lengthKon * k / 1000 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Длина накосных':
         fake.LookupParameter('q999').Set('{:.1f}'.format(lengthNak * k / 1000).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(lengthNak * k / 1000 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Длина свесов':
         fake.LookupParameter('q999').Set('{:.1f}'.format(lengthSves * k / 1000).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(lengthSves * k / 1000 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Плита OSB-3, 18 мм':
         fake.LookupParameter('q9').Set('{:.0f}'.format(areaOSB / k2).replace('.', ','))
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaOSB / k2).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(areaOSB / k2 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Утеплитель':
         fake.LookupParameter('q999').Set('{:.0f}'.format(volumeUtepl / k1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(volumeUtepl / k1 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Площадь кровли':
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaOSB / k2 * 1.1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(areaOSB / k2 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Подкладочный ковёр под битумную черепицу':
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaOSB / k2 * 1.1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(areaOSB / k2 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Площадь подшивки свесов':
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaSves / k2 * 1.1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(areaSves / k2 * 1.1)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Гидроизоляция обвязки':
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaGidro / k2 * 1.1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(areaGidro / k2 * 1.1)
 
 t.Commit()

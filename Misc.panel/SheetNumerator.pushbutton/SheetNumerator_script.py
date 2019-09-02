@@ -96,7 +96,7 @@ for part in sorted(parts.keys()):
         sh.reference.SheetNumber += 'temp'
 
 for part in sorted(parts.keys()):
-    print('\n-------------- ' + part + ' --------------')
+    print('\n-------------- ' + (part if part else '???') + ' --------------')
 
     mySheets = []
     for i in natural_sorted(parts[part], key=lambda x: x.SheetNumber.replace('‎', '')):

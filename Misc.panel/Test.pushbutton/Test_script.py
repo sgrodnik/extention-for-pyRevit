@@ -15,9 +15,20 @@ k = 304.8
 
 sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()]
 
-for part in sel:
-	bbox = part.get_BoundingBox(doc.ActiveView)
-	print(bbox.Max.Z * k)
+sel = filter(lambda x: x.LookupParameter('Категория').AsValueString() == 'Электрооборудование', sel)
+
+sel_save = [el.Id for el in sel]
+
+system_ids_to_select = []
+for el in sel:
+	for system in el.MEPModel.ElectricalSystems:
+		if system.Id not in system_ids_to_select:
+			system_ids_to_select.append(system.Id)
+
+# for i in system_ids_to_select:
+# 	print(i)
+
+uidoc.Selection.SetElementIds(List[ElementId](system_ids_to_select + sel_save))
 
 # t = Transaction(doc, 'Test')
 # t.Start()

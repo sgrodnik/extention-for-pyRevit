@@ -1,64 +1,113 @@
-# -*- coding: utf-8 -*-
-""""""
-__title__ = 'Test'
-__author__ = 'SG'
+# # -*- coding: utf-8 -*-
+# """"""
+# __title__ = 'Test'
+# __author__ = 'SG'
 
-import clr
-clr.AddReference('System.Core')
-from System.Collections.Generic import *
-from Autodesk.Revit.DB import ElementId, PartUtils, ViewOrientation3D, XYZ, FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, ElementId, SolidSolidCutUtils, InstanceVoidCutUtils
-import sys
-from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
-doc = __revit__.ActiveUIDocument.Document
-uidoc = __revit__.ActiveUIDocument
-k = 304.8
+# import clr
+# clr.AddReference('System.Core')
+# from System.Collections.Generic import *
+# from Autodesk.Revit.DB import ElementId, PartUtils, ViewOrientation3D, XYZ, FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, Line, Plane
+# import sys
+# from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
+# # from Autodesk.Revit.ApplicationServices.Application import Create
+# doc = __revit__.ActiveUIDocument.Document
+# uidoc = __revit__.ActiveUIDocument
+# app = __revit__.Application
+# k = 304.8
 
-sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()]
+# origin = XYZ.Zero
+# normal = XYZ.BasisZ
 
-sel = filter(lambda x: x.LookupParameter('Категория').AsValueString() == 'Электрооборудование', sel)
+# plane = Plane.Create(normal, origin)
+# skplane = doc.FamilyCreate.NewSketchPlane(plane)
 
-sel_save = [el.Id for el in sel]
+# import clr
+# import math
+# import numpy as np
+# clr.AddReference('RevitAPI')
+# clr.AddReference('RevitAPIUI')
+# from Autodesk.Revit.DB import *
 
-system_ids_to_select = []
-for el in sel:
-	for system in el.MEPModel.ElectricalSystems:
-		if system.Id not in system_ids_to_select:
-			system_ids_to_select.append(system.Id)
+# doc = __revit__.ActiveUIDocument.Document
+# app = __revit__.Application
 
-# for i in system_ids_to_select:
-# 	print(i)
+# t = Transaction(doc, 'Create Line')
 
-uidoc.Selection.SetElementIds(List[ElementId](system_ids_to_select + sel_save))
-
-# t = Transaction(doc, 'Test')
 # t.Start()
 
-# for elid in framings.Keys:
-# 	framing = doc.GetElement(elid)
-# 	for joint in joints:
-# 		# print(framing)
-# 		# print(joint)
-# 		# SolidSolidCutUtils.AddCutBetweenSolids(doc, framing, joint)
-# 		if not InstanceVoidCutUtils.InstanceVoidCutExists(framing, joint):
-# 			InstanceVoidCutUtils.AddInstanceVoidCut(doc, framing, joint)
+# start = XYZ(0, 0, 0)
+# end = XYZ(20, 20, 0)
 
+# # normal =
 
-# # # sel = [doc.GetElement(elid) for elid indoc.Selection.GetElementIds()
+# x = [1, 2, 3]
+# y = [4, 5, 6]
+# np.cross(x, y)
 
-# # parent_part_id = sel[0].GetSourceElementIds()[0].HostElementId
-# # parent_id = doc.GetElement(parent_part_id).GetSourceElementIds()[0].HostElementId
+# plane = Plane.CreateByThreePoints(start, XYZ(1, 0, 0), end)
+# # skplane = doc.FamilyCreate.NewSketchPlane(plane)
+# sketchPlane = SketchPlane.Create(doc, plane)
 
+# # Create line vertices
 
-# # # from pyrevit import script
-# # # output = script.get_output()
+# # create NewLine()
+# # line = app.Create.NewLine(lnStart, lnEnd, True)
+# line = Line.CreateBound(start, end)
 
-# # els = PartUtils.GetAssociatedParts(doc, parent_id, False, True)
-# # # for i in els:
-# # # 	link = output.linkify(i, doc.GetElement(i))
-# # # 	print('{}'.format(link))
+# modelLine = doc.Create.NewModelCurve(line, sketchPlane)
 
-# # uidoc.Selection.SetElementIds(els)
-
-# # # print(PartUtils.HasAssociatedParts(doc, ElementId(269556)))
+# # create NewModelCurve()
+# # crv = doc.FamilyCreate.NewModelCurve(line, sketchPlane)
 
 # t.Commit()
+
+
+
+
+
+
+
+
+import clr
+import math
+clr.AddReference('RevitAPI')
+clr.AddReference('RevitAPIUI')
+from Autodesk.Revit.DB import *
+
+doc = __revit__.ActiveUIDocument.Document
+app = __revit__.Application
+
+t = Transaction(doc, 'Create Line')
+
+t.Start()
+
+start = XYZ(0, 0, 0)
+end = XYZ(10, 10, 0)
+
+line = Line.CreateBound(start, end)  #https://forums.autodesk.com/t5/revit-api-forum/how-to-crete-3d-modelcurves-to-avoid-exception-curve-must-be-in/td-p/8355936
+direction = line.Direction
+x, y, z = direction.X, direction.Y, direction.Z
+# normal = XYZ(z - y, x - z, y - x)
+normal = XYZ.BasisZ.CrossProduct(line.Direction)
+plane = Plane.CreateByNormalAndOrigin(normal, start)
+sketchPlane = SketchPlane.Create(doc, plane)
+modelCurve = doc.Create.NewModelCurve(line, sketchPlane)
+
+
+
+# plane = Plane.CreateByThreePoints(start, XYZ(1, 0, 0), end)
+# # skplane = doc.FamilyCreate.NewSketchPlane(plane)
+# sketchPlane = SketchPlane.Create(doc, plane)
+
+# # Create line vertices
+
+# # create NewLine()
+# # line = app.Create.NewLine(lnStart, lnEnd, True)
+# line = Line.CreateBound(start, end)
+
+# modelLine = doc.Create.NewModelCurve(line, sketchPlane)
+
+# # create NewModelCurve()
+# # crv = doc.FamilyCreate.NewModelCurve(line, sketchPlane)
+
+t.Commit()

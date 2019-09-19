@@ -328,8 +328,6 @@ for i, cir in enumerate(cirs):
     cir.LookupParameter('Количество').Set(kolichestvo[i])
     cir.LookupParameter('Единицы измерения').Set(edinitcyIzmereniia[i])
 
-def forpr(lst):
-    for el in lst: print(el)
 
 els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
 for el in filter(lambda x: 'Фейк' in x.LookupParameter('Тип').AsValueString(), els):
@@ -343,7 +341,6 @@ for symbol in symbols:
     symbol.LookupParameter('Описание').Set('')
     symbol.LookupParameter('Комментарии к типоразмеру').Set('')
     symbol.LookupParameter('Ключевая пометка').Set('')
-# forpr(symbols)
 # symbol = list(filter(lambda x: x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() == 'Фейк 3', symbols))[0]
 levels = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Levels).WhereElementIsNotElementType().ToElements()
 level = levels[0]
@@ -356,6 +353,7 @@ for i, cir in enumerate(cirs):
         symbol.LookupParameter('Описание').Set(naimenovanie[i])
         symbol.LookupParameter('Комментарии к типоразмеру').Set(marka2[i])
         symbol.LookupParameter('Ключевая пометка').Set(edinitcyIzmereniia[i])
+        symbol.LookupParameter('Стоимость').Set(200)
     else:
         symbol = list(filter(lambda x: x.LookupParameter('Комментарии к типоразмеру').AsString() == marka2[i], symbols))[0]
     el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
@@ -363,8 +361,27 @@ for i, cir in enumerate(cirs):
     el.LookupParameter('Количество').Set(kolichestvo[i])
     el.LookupParameter('Цепь').Set(str(cir.Id))
     el.LookupParameter('Помещение').Set(cir.LookupParameter('Помещение').AsString())
-
     location += XYZ(0, -0.1, 0)
+
+symbols = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsElementType().ToElements()
+symbols = list(filter(lambda x: 'офр' in x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString(), symbols))
+
+location = XYZ(-10, 76, 0)
+els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
+for el in filter(lambda x: 'офр' in x.LookupParameter('Тип').AsValueString(), els):
+    doc.Delete(el.Id)
+els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
+for symbol in symbols:
+    symbol.LookupParameter('Стоимость').Set(300)
+    for vega in filter(lambda x: 'Compact A3' in x.LookupParameter('Тип').AsValueString(), els):
+        el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
+        # print(el)
+        kol = symbol.LookupParameter('Группа модели').AsString()
+        el.LookupParameter('Количество').Set(float(kol))  # Может быть ошибка, если Группа модели не прописана (её нужно прописывать вручную каждому типу крепежа).
+        # el.LookupParameter('Количество').Set(11)
+        el.LookupParameter('Помещение').Set(vega.LookupParameter('Помещение').AsString())
+        location += XYZ(0, -0.1, 0)
+
 
 
 

@@ -6,7 +6,7 @@ __author__ = 'SG'
 import clr
 clr.AddReference('System.Core')
 from System.Collections.Generic import *
-from Autodesk.Revit.DB import ElementId, PartUtils, ViewOrientation3D, XYZ, FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, Line, Point, SketchPlane, Plane
+from Autodesk.Revit.DB import ElementId, PartUtils, ViewOrientation3D, XYZ, FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, Line, Point, SketchPlane, Plane, Structure
 import sys
 from Autodesk.Revit.UI.Selection import ObjectType, ISelectionFilter
 doc = __revit__.ActiveUIDocument.Document
@@ -186,21 +186,21 @@ for wire in dividedWires:
         reserve.append(2000)
 
 # Формируем список длин с запасом
-lengthsWithReserve = [len * 1.02 + res /
-                      k for len, res in zip(lengths, reserve)]
+lengthsWithReserve = [length * 1.02 + res /
+                      k for length, res in zip(lengths, reserve)]
 
-lengthsWithReserve = [ceil(len * k / 1000) * 1000 /
-                      k for len in lengthsWithReserve]  # Округление вверх
+lengthsWithReserve = [ceil(length * k / 1000) * 1000 /
+                      k for length in lengthsWithReserve]  # Округление вверх
 
 # округление параметра "длина с запасом" до типовых размеров для кабеля HDMI (и VGA)
-for i, len in enumerate(lengthsWithReserve):
+for i, length in enumerate(lengthsWithReserve):
     if dividedWires[i] == 'HDMI' or \
        dividedWires[i] == 'HDMI(не включать)' or \
        dividedWires[i] == 'USB 2.0(не включать)' or \
        dividedWires[i] == 'VGA':
         a = 0
         for pos in cableLengths:
-            if len <= pos * 1000 / k:
+            if length <= pos * 1000 / k:
                 a = pos * 1000 / k
                 break
         if a:
@@ -210,7 +210,7 @@ for i, len in enumerate(lengthsWithReserve):
 
 # Далее формируем список округлённых в большую сторону длин (для мерных изделий)
 discreteLengths = []
-for i, len in enumerate(lengthsWithReserve):
+for i, length in enumerate(lengthsWithReserve):
     if dividedWires[i] == 'HDMI' or \
        dividedWires[i] == 'HDMI(не включать)' or \
        dividedWires[i] == 'USB 2.0(не включать)' or \
@@ -218,7 +218,7 @@ for i, len in enumerate(lengthsWithReserve):
         # Если длина не будет подобрана, то останутся эти прочерки
         a = 'Error: path length exceeded'
         for pos in cableLengths:
-            if len <= pos * 1000 / k:
+            if length <= pos * 1000 / k:
                 a = pos
                 break
         discreteLengths.append(a)
@@ -226,7 +226,7 @@ for i, len in enumerate(lengthsWithReserve):
         # Если длина не будет подобрана, то останутся эти прочерки
         a = 'Error: path length exceeded'
         for pos in cableLengthsForUSB:
-            if len <= pos * 1000 / k:
+            if length <= pos * 1000 / k:
                 a = pos
                 break
         discreteLengths.append(a)
@@ -328,6 +328,46 @@ for i, cir in enumerate(cirs):
     cir.LookupParameter('Количество').Set(kolichestvo[i])
     cir.LookupParameter('Единицы измерения').Set(edinitcyIzmereniia[i])
 
+def forpr(lst):
+    for el in lst: print(el)
+
+els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
+for el in filter(lambda x: 'Фейк' in x.LookupParameter('Тип').AsValueString(), els):
+    doc.Delete(el.Id)
+els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
+for el in filter(lambda x: 'Фейк' not in x.LookupParameter('Тип').AsValueString(), els):
+    el.LookupParameter('Количество').Set(0)
+symbols = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsElementType().ToElements()
+symbols = list(filter(lambda x: 'Фейк' in x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString(), symbols))
+for symbol in symbols:
+    symbol.LookupParameter('Описание').Set('')
+    symbol.LookupParameter('Комментарии к типоразмеру').Set('')
+    symbol.LookupParameter('Ключевая пометка').Set('')
+# forpr(symbols)
+# symbol = list(filter(lambda x: x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() == 'Фейк 3', symbols))[0]
+levels = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Levels).WhereElementIsNotElementType().ToElements()
+level = levels[0]
+location = XYZ(-10.8904389851532, 76.6607564383779, 0)
+done = []
+for i, cir in enumerate(cirs):
+    if marka2[i] not in done:
+        done.append(marka2[i])
+        symbol = symbols[len(done)-1]
+        symbol.LookupParameter('Описание').Set(naimenovanie[i])
+        symbol.LookupParameter('Комментарии к типоразмеру').Set(marka2[i])
+        symbol.LookupParameter('Ключевая пометка').Set(edinitcyIzmereniia[i])
+    else:
+        symbol = list(filter(lambda x: x.LookupParameter('Комментарии к типоразмеру').AsString() == marka2[i], symbols))[0]
+    el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
+    # cir.LookupParameter('Способ расчёта').Set(sposobRaschyota[i])
+    el.LookupParameter('Количество').Set(kolichestvo[i])
+    el.LookupParameter('Цепь').Set(str(cir.Id))
+    el.LookupParameter('Помещение').Set(cir.LookupParameter('Помещение').AsString())
+
+    location += XYZ(0, -0.1, 0)
+
+
+
 
 #---------------------------------Линии по трактории-----------------
 count = []
@@ -386,7 +426,25 @@ for path, c in zip(points, count):
 
 OUT = cirs, panels, elements, dividedWires, lengthsWithReserve, discreteLengths, naimenovanie, marka2, sposobRaschyota, kolichestvo, edinitcyIzmereniia,
 
-# print(lines)
+
+electricalEquipment = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
+
+for el in electricalEquipment:
+    # print(el.Id)
+    if el.GetSubComponentIds():
+        room_name = el.LookupParameter('Помещение').AsString()
+        for sub_el_id in el.GetSubComponentIds():
+            doc.GetElement(sub_el_id).LookupParameter('Помещение').Set(room_name)
+
+
+
+
+
+
+
+
+
+
 
 
 

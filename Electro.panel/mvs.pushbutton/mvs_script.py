@@ -47,9 +47,17 @@ cirs = [i for i in sortedCirs]
 
 panels = []  # Далее формируем список панелей цепей
 elements = []  # Далее формируем двумерный список элементов цепей
+errors = []
 for cir in (cirs):
     panels.append(cir.BaseEquipment)  # Возвращает элемент
+    if not cir.BaseEquipment:
+        errors.append(cir)
     elements.append(cir.Elements)  # Возвращает список(!) элементов
+
+if errors:
+    for cir in errors:
+        print(cir.Id)
+    raise Exception('Обнаружены неподключенные цепи. Не указана Панель')
 
 namesOfTypesOfPanels = []  # Далее формируем список имён типов панелей
 for panel in panels:

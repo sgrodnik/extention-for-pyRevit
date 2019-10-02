@@ -86,16 +86,22 @@ for i in rounds:
         s = 'δ=1,2'
     roundsDiameter.append('ø{:.0f}, {}'.format(d, s))
 
+els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_FlexDuctCurves).WhereElementIsElementType().ToElements()
+symbol = list(filter(lambda x: x.LookupParameter('Имя типа').AsString() == 'SG_Круглый изолированный', els))[0]
 flexDiameter = []
-for j in flexes:
-    flexDiameter.append('ø{:.0f}'.format(j.LookupParameter('Диаметр').AsDouble() * k))
+for flex in flexes:
+    flexDiameter.append('ø{:.0f}'.format(flex.LookupParameter('Диаметр').AsDouble() * k))
+
+    if flex.LookupParameter('Классификация систем').AsString() == 'Приточный воздух' \
+        and flex.LookupParameter('Тип').AsValueString() != 'SG_Круглый изолированный':
+            flex.FlexDuctType = symbol
 
 lengthDucts = []  # Длина воздуховодов
 for i in ducts:
     lengthDucts.append(round(i.LookupParameter('Длина').AsDouble() * 1.1, 2))
 lengthFlexes = []
 for i in flexes:
-    lengthFlexes.append(round(i.LookupParameter('Длина').AsDouble() * 1.1, 2))
+    lengthFlexes.append(i.LookupParameter('Длина').AsDouble() * 1.15 + 100 / k)
 lengthPipes = []
 for i in pipes:
     lengthPipes.append(round(i.LookupParameter('Длина').AsDouble() * 1.1, 2))
@@ -523,7 +529,7 @@ for i, pos in enumerate(flexes):
 for i, pos in enumerate(ducts):
     pos.LookupParameter('ХТ Длина ОВ').Set(lengthDucts[i])  # Длина воздуховодов
 for i, pos in enumerate(flexes):
-    pos.LookupParameter('ХТ Длина ОВ').Set(lengthFlexes[i] + 50 / k)
+    pos.LookupParameter('ХТ Длина ОВ').Set(lengthFlexes[i])
 for i, pos in enumerate(pipes):
     pos.LookupParameter('ХТ Длина ОВ').Set(lengthPipes[i])
 for i, pos in enumerate(insuls):
@@ -800,7 +806,8 @@ len(fakesForPaint) != len(uniqueSystems) or \
 len(fakesForAreaPrimer) != len(uniqueSystems) or \
 len(fakesForPrimer) != len(uniqueSystems) or \
 len(fakesForCheckuot) != len(uniqueSystemAndSize):
-    raise Exception('{}, {}, {}, {}, {}, {}'.format(
+    # raise Exception('{}, {}, {}, {}, {}, {}'.format(
+    print('{}, {}, {}, {}, {}, {}'.format(
         -len(fakesForBrackets) + len(uniqueSystemAndSize),
         -len(fakesForArea) + len(uniqueSystems),
         -len(fakesForPaint) + len(uniqueSystems),

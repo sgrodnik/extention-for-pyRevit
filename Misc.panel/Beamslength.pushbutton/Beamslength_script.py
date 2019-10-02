@@ -30,7 +30,7 @@ for el in els:
     dimH = el.LookupParameter('ADSK_Размер_Ширина').AsDouble() * k
     name = '{:.0f}×{:.0f}'.format(min([dimB, dimH]), max([dimB, dimH]))
     el.LookupParameter('Наименование').Set(name)
-    el.LookupParameter('Наименование СМ').Set(name)
+    el.LookupParameter('Наименование СМ').Set('Пиломатериал ' + name)
     el.LookupParameter('Наименование краткое').Set(name)
     zapas = 1.0 if 'Кле' in el.LookupParameter('Тип').AsValueString() else 1.1
     el.LookupParameter('ХТ Длина ОВ').Set(dimL * dimB * dimH / 1000000000 * zapas)
@@ -246,7 +246,9 @@ for el in els:
 areaOSB = 0
 volumeUtepl = 0
 areaSves = 0
+areaOtdelki = 0
 areaGidro = 0
+areaGidroSten = 0
 roofs = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Roofs).WhereElementIsNotElementType().ToElements()
 for roof in roofs:
     if roof.Name == 'Плита OSB-3, 18 мм':
@@ -255,8 +257,12 @@ for roof in roofs:
         volumeUtepl += roof.LookupParameter('Объем').AsDouble()
     elif roof.Name == 'Площадь подшивки свесов':
         areaSves += roof.LookupParameter('Площадь').AsDouble()
+    elif roof.Name == 'Площадь отделки':
+        areaOtdelki += roof.LookupParameter('Площадь').AsDouble()
     elif roof.Name == 'Гидроизоляция обвязки':
         areaGidro += roof.LookupParameter('Площадь').AsDouble()
+    elif roof.Name == 'Гидроизоляция стен':
+        areaGidroSten += roof.LookupParameter('Площадь').AsDouble()
 
     if not roof.LookupParameter('Этап').HasValue:
         roof.LookupParameter('Этап').Set(999 * k2)
@@ -296,9 +302,13 @@ for fake in fakes:
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaOSB / k2).replace('.', ','))
         fake.LookupParameter('ХТ Длина ОВ').Set(areaOSB / k2 * 1.1)
 
-    elif fake.LookupParameter('Тип').AsValueString() == 'Утеплитель':
+    elif fake.LookupParameter('Тип').AsValueString() == 'Утеплитель 50':
         fake.LookupParameter('q999').Set('{:.0f}'.format(volumeUtepl / k1).replace('.', ','))
-        fake.LookupParameter('ХТ Длина ОВ').Set(volumeUtepl / k1 * 1.1)
+        fake.LookupParameter('ХТ Длина ОВ').Set(volumeUtepl / k1 * 1.1 / 3.0 * 1.0)
+
+    elif fake.LookupParameter('Тип').AsValueString() == 'Утеплитель 100':
+        fake.LookupParameter('q999').Set('{:.0f}'.format(volumeUtepl / k1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(volumeUtepl / k1 * 1.1 / 3.0 * 2.0)
 
     elif fake.LookupParameter('Тип').AsValueString() == 'Площадь кровли':
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaOSB / k2 * 1.1).replace('.', ','))
@@ -312,8 +322,16 @@ for fake in fakes:
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaSves / k2 * 1.1).replace('.', ','))
         fake.LookupParameter('ХТ Длина ОВ').Set(areaSves / k2 * 1.1)
 
+    elif fake.LookupParameter('Тип').AsValueString() == 'Площадь отделки':
+        fake.LookupParameter('q999').Set('{:.0f}'.format(areaOtdelki / k2 * 1.1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(areaOtdelki / k2 * 1.1)
+
     elif fake.LookupParameter('Тип').AsValueString() == 'Гидроизоляция обвязки':
         fake.LookupParameter('q999').Set('{:.0f}'.format(areaGidro / k2 * 1.1).replace('.', ','))
         fake.LookupParameter('ХТ Длина ОВ').Set(areaGidro / k2 * 1.1)
+
+    elif fake.LookupParameter('Тип').AsValueString() == 'Гидроизоляция стен':
+        fake.LookupParameter('q999').Set('{:.0f}'.format(areaGidroSten / k2 * 1.1).replace('.', ','))
+        fake.LookupParameter('ХТ Длина ОВ').Set(areaGidroSten / k2 * 1.1)
 
 t.Commit()

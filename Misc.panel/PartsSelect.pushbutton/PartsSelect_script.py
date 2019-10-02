@@ -44,9 +44,11 @@ if not sel:
             part.LookupParameter('Ряд').Set(math.ceil(bbox.Max.Z * k / 252))
 
         if part.LookupParameter('Исходная категория').AsString() == 'Стены':
-            part.LookupParameter('Наименование СМ').Set('Газобетонный {}блок толщиной {:.0f} мм'.format(
+            tolshina = part.LookupParameter('Толщина').AsDouble() * k
+            part.LookupParameter('Наименование СМ').Set('Газобетонный {}блок толщиной {:.0f} мм {}'.format(
                 'U-' if part.LookupParameter('Комментарии').AsString() == 'U-Блоки' else '',
-                part.LookupParameter('Толщина').AsDouble() * k))
+                tolshina,
+                'AEROC EcoTerm (D400)' if tolshina == 85 else 'AEROC Classic (D500)'))
             volume = part.LookupParameter('Высота').AsDouble() * part.LookupParameter('Толщина').AsDouble() * part.LookupParameter('Длина').AsDouble() * k * k * k / 1000000000
             part.LookupParameter('ХТ Длина ОВ').Set(volume * 1.1)
         else:

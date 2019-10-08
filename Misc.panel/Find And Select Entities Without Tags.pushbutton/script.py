@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 """Selects elements with no associated tags in current view."""
 #pylint: disable=import-error,invalid-name

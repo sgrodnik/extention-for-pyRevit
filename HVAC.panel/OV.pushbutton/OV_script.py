@@ -952,6 +952,7 @@ else:
                 #     sort += ' 4' if sysName[:2] == 'T2' else ''
                 # if i.LookupParameter('ХТ Имя системы').AsString() == 'T1':
                     # print(sort.replace(' ', '*'))
+                # print(i.Id)
                 i.LookupParameter('Сортировка строка').Set(sort)
                 # i.LookupParameter('Сортировка').Set(sort)
         # else:

@@ -19,6 +19,7 @@ joints = []
 for el in sel:
 	if el.Category.Name == 'Каркас несущий':
 		# if el.Id not in framings:
+		print(11)
 		framings.append(el)
 	elif el.Category.Name == 'Соединения несущих конструкций':
 		joints.append(el)

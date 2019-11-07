@@ -17,35 +17,6 @@ from math import ceil
 from pyrevit import script
 output = script.get_output()
 
-els = FilteredElementCollector(doc).OfCategory(
-    BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
-
-for el in els:
-    if el.MEPModel.ElectricalSystems:
-        # arr = [cir for cir in list(el.MEPModel.ElectricalSystems) if cir.BaseEquipment.Id != el.Id]
-
-        arr = []
-        for cir in list(el.MEPModel.ElectricalSystems):
-            if not cir.BaseEquipment:
-                name = el.LookupParameter('Тип').AsValueString()
-                cir_number = cir.LookupParameter('Номер цепи').AsString()
-                print('Не указана панель: {}, номер цепи {}'.format(output.linkify(el.Id, name), cir_number))
-                raise Exception('Не указана панель')
-            if cir.BaseEquipment.Id != el.Id:
-                arr.append(cir)
-        if arr:
-            len1 = len(arr)
-            # print(el.Id)
-            # print(doc.GetElement(el.GetTypeId()))
-            len2 = len(doc.GetElement(el.GetTypeId()).LookupParameter('КабельСигнальный').AsString().split('/'))
-            name = el.LookupParameter('Тип').AsValueString()
-            if len1 > len2:
-                print('Ошибка: {}: подключений: {} КабельСигнальный: {}'.format(output.linkify(el.Id, name), len1, len2))
-            elif len1 < len2:
-                print('Предупреждение: {}: подключений: {} КабельСигнальный: {}'.format(output.linkify(el.Id, name), len1, len2))
-                # print('{}'.format(output.linkify(mydict[name], name)))
-
-
 cirs = FilteredElementCollector(doc).OfCategory(
     BuiltInCategory.OST_ElectricalCircuit).WhereElementIsNotElementType().ToElements()
 
@@ -76,10 +47,6 @@ pairs.sort(key=lambda x: x[0])
 sortedCirs = [p[1] for p in pairs]
 
 cirs = [i for i in sortedCirs]
-
-# print(len(cirs))
-# for i in cirs:
-#     print('{}×{}×{}'.format(i.Id, i.LookupParameter('Имя нагрузки').AsString(), i.LookupParameter('Панель').AsString()))
 
 panels = []  # Далее формируем список панелей цепей
 elements = []  # Далее формируем двумерный список элементов цепей
@@ -117,11 +84,10 @@ for i, element in enumerate(elements):
             wireOfType = type.LookupParameter('КабельСигнальный').AsString()
         wire.append(wireOfType)
         name.append(type.get_Parameter(
-            BuiltInParameter.SYMBOL_NAME_PARAM).AsString().replace(' значок выкл', ''))
+            BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
         if not el.LookupParameter('Помещение').AsString():
-            # print(doc.GetElement(el.Id).LookupParameter('Тип').AsValueString())
-            print('{} Следует заполнить параметр Помещение'.format(output.linkify(el.Id, el.LookupParameter('Тип').AsValueString())))
-            raise Exception('Помещение')
+            print('{}'.format(output.linkify(el.Id, doc.GetElement(el.Id).LookupParameter('Тип').AsValueString())))
+            raise Exception('Следует заполнить параметр Помещение')
         subRooms.append(el.LookupParameter('Помещение').AsString())
     if len(wire) == 1:  # если длина вложенного списка == 1 (то есть в цепи один Элемент, а не шлейф), то
         wires.append(wire[0])  # берём значение единственного элемента
@@ -139,8 +105,6 @@ for i, element in enumerate(elements):
                 string2 = 'Ошибка 2'  # формируем ошибку
         wires.append(string)  # забираем результат
         namesOfTypesOfElements.append(string2)
-    # wire_as_slashed_sring = wires[-1]
-    # print(wire_as_slashed_sring)
     rooms.append(subRooms[0])
 
 t = Transaction(doc, 'Расчет MVS')
@@ -159,10 +123,6 @@ for i, wire in enumerate(wires):
     if wire is None:
         wires.pop(i)
         wires.insert(i, '-')
-
-#for i in sorted(wires):
-#    print(i)
-
 """
 numberOfWires = [] # Позднее нам потребуется знать количество разделителей
 for wire in wires:
@@ -171,69 +131,19 @@ for wire in wires:
     else:
         numberOfWires.append(wire.count('/'))"""
 
-
-
-# counter = 1
-# doneList = []
-# dividedWires = [i for i in wires]
-
-# # for i in dividedWires:
-# #     print(i)
-# # print('0-----------------0')
-
-# # print(11)
-# # print(len(dividedWires))
-
-# # Хитрый цикл, в котором стринги кабелей с разделителями заменяем отдельными кабелями
-# for i, wire in enumerate(dividedWires):
-#     if wire.count('/') > 0:
-#         # print(wire)
-#         if i not in doneList:
-#             for j, w in enumerate(wire.split('/')):
-#                 # print(w)
-#                 try:
-#                     dividedWires.pop(i + j)
-#                 except:
-#                     a = 'похер'  # pass
-#                 dividedWires.insert(i + j, w)
-#                 doneList.append(i + j)
-#                 # print('{} len = {}'.format(counter, len(dividedWires)))
-#                 counter += 1
-# # for i in dividedWires:
-# #     print(i)
-# # print('1-----------------1')
-
-# # print(22)
-# # print(len(dividedWires))
-
-cirs_grouped_by_element = {}
-for cir in cirs:
-    element = list(cir.Elements)[0]
-    if element.Id not in cirs_grouped_by_element:
-        cirs_grouped_by_element[element.Id] = []
-    for connector in element.MEPModel.ConnectorManager.Connectors:
-        all_refs = list(connector.AllRefs)
-        if all_refs:
-            if all_refs[0].Owner.Id == cir.Id:
-                cirs_grouped_by_element[element.Id].append((connector.Id, cir))
-
-cirs_and_their_wires = {}
-for el_id in cirs_grouped_by_element:
-    el = doc.GetElement(el_id)
-    wire_as_slashed_sring = doc.GetElement(el.GetTypeId()).LookupParameter('КабельСигнальный').AsString()
-    wire_list = wire_as_slashed_sring.split('/')
-    cirs_group = cirs_grouped_by_element[el_id]
-    counter = 0
-    for number, cir in sorted(cirs_group, key=lambda (n, c): n):
-        cir_wire = wire_list[counter]
-        counter += 1
-        cirs_and_their_wires[cir.Id] = cir_wire
-
-
-dividedWires = []
-for cir in cirs:
-    dividedWires.append(cirs_and_their_wires[cir.Id])
-
+doneList = []
+dividedWires = [i for i in wires]
+# Хитрый цикл, в котором стринги кабелей с разделителями заменяем отдельными кабелями
+for i, wire in enumerate(dividedWires):
+    if wire.count('/') > 0:
+        if i not in doneList:
+            for j, w in enumerate(wire.split('/')):
+                try:
+                    dividedWires.pop(i + j)
+                except:
+                    a = 'похер'
+                dividedWires.insert(i + j, w)
+                doneList.append(i + j)
 
 #-------------Смена режима траектории--------------------
 
@@ -269,7 +179,7 @@ for cir in (cirs):
     lengths.append(cir.Length)
 
 k = 304.8
-cableLengths = [1, 2, 3, 5, 20]  # список возможных длин мерных изделий
+cableLengths = [1, 20]  # список возможных длин мерных изделий
 cableLengthsForUSB = [3]  # список возможных длин мерных изделий
 
 reserve = []  # Далее формируем список запасов длин цепей
@@ -286,7 +196,6 @@ for wire in dividedWires:
         reserve.append(100)
     else:
         reserve.append(2000)
-
 
 # Формируем список длин с запасом
 lengthsWithReserve = [length * 1.02 + res /
@@ -323,23 +232,18 @@ for i, length in enumerate(lengthsWithReserve):
         for pos in cableLengths:
             if length <= pos * 1000 / k:
                 a = pos
-#                print(111)
                 break
         discreteLengths.append(a)
     elif dividedWires[i] == 'USB 2.0':
         # Если длина не будет подобрана, то останутся эти прочерки
-        # a = 'Error: path length exceeded'
-        a = '3'
+        a = 'Error: path length exceeded'
         for pos in cableLengthsForUSB:
             if length <= pos * 1000 / k:
                 a = pos
-#                print(222)
                 break
         discreteLengths.append(a)
     else:
         discreteLengths.append('')
-
-
 
 
 for i, cir in enumerate(cirs):
@@ -369,8 +273,6 @@ nameCode = {  # Словарь строк для "Наименования и т
     'FTP 5e': 'Кабель парной скрутки',
     'RG174': 'Кабель коаксильный',
     'RG-174': 'Кабель коаксильный',
-    'UTP 4x2x0,52 cat 6e': 'Кабель парной скрутки',
-    '3xRCA': 'Кабель передачи аудио-видеосигналов',
     '20 жильный управляющий кабель': 'Кабель (Уточнить)'
 }
 markaCode = {  # Словарь строк для "Тип, марка"
@@ -392,8 +294,6 @@ markaCode = {  # Словарь строк для "Тип, марка"
     'FTP 5e': 'FTP 2x2x0,52 cat 5e',
     'RG174': 'RG174',
     'RG-174': 'RG174',
-    'UTP 4x2x0,52 cat 6e': 'UTP 4x2x0,52 cat 6e',
-    '3xRCA': '3xRCA',
     '20 жильный управляющий кабель': '20 жил (Условно)'
 }
 
@@ -402,20 +302,17 @@ for i, wire in enumerate(dividedWires):
     try:
         naimenovanie.append(nameCode[wire])
     except KeyError:
-        naimenovanie.append('Ошибка 3: ' + wire)
+        naimenovanie.append('Ошибка 3')
 
 marka = []  # Далее формируем список марок проводов на основе словаря
 for i, wire in enumerate(dividedWires):
     try:
         marka.append(markaCode[wire])
     except KeyError:
-        marka.append('Ошибка 4: ' + wire)
+        marka.append('Ошибка 4')
 
 marka2 = []  # Далее формируем список марок проводов с учётом мерных изделий
 sposobRaschyota = []
-# print(len(dividedWires))
-# print(len(marka))
-# print(len(discreteLengths))
 for i, m in enumerate(marka):
     a = discreteLengths[i]
     if a != '':
@@ -453,8 +350,6 @@ for el in filter(lambda x: 'Фейк' not in x.LookupParameter('Тип').AsValue
 symbols = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsElementType().ToElements()
 symbols = list(filter(lambda x: 'Фейк' in x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString(), symbols))
 for symbol in symbols:
-    if not symbol.IsActive:
-        symbol.Activate()
     symbol.LookupParameter('Описание').Set('')
     symbol.LookupParameter('Комментарии к типоразмеру').Set('')
     symbol.LookupParameter('Ключевая пометка').Set('')
@@ -489,8 +384,6 @@ for el in filter(lambda x: 'офр' in x.LookupParameter('Тип').AsValueString
     doc.Delete(el.Id)
 els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
 for symbol in symbols:
-    if not symbol.IsActive:
-        symbol.Activate()
     symbol.LookupParameter('Стоимость').Set(300)
     for vega in filter(lambda x: 'Compact A3' in x.LookupParameter('Тип').AsValueString(), els):
         el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
@@ -570,7 +463,6 @@ for el in electricalEquipment:
     if el.GetSubComponentIds():
         room_name = el.LookupParameter('Помещение').AsString()
         for sub_el_id in el.GetSubComponentIds():
-#            print(doc.GetElement(sub_el_id).LookupParameter('Тип').AsValueString())
             doc.GetElement(sub_el_id).LookupParameter('Помещение').Set(room_name)
 
 
@@ -639,29 +531,29 @@ for style in lineStyles:
         myStyles.append(style)
         myStylesNames.append(style.Name)
 
-try:
-    errCounter = []
-    list1 = []
-    for i, path in enumerate(paths):
-        sublist = []
-        for line in path:
-            try:
-                line.LineStyle = myStyles[nameCode.index(IN1[i])]
-                sublist.append(line.LineStyle.Name)
-            except ValueError:
-                s = str(i) + ' ' + IN1[i]
-                if s not in errCounter: errCounter.append(s)
-                sublist.append('Кабель не найден: ' + IN1[i])
-        list1.append(sublist)
-except:
-    pass
 
-#OUT2 = errCounter, list1, sorted(nameCode), sorted(myStylesNames)
+errCounter = []
+list1 = []
+for i, path in enumerate(paths):
+    sublist = []
+    for line in path:
+        try:
+            line.LineStyle = myStyles[nameCode.index(IN1[i])]
+            sublist.append(line.LineStyle.Name)
+        except ValueError:
+            s = str(i) + ' ' + IN1[i]
+            if s not in errCounter: errCounter.append(s)
+            sublist.append('Кабель не найден: ' + IN1[i])
+    list1.append(sublist)
+
+
+OUT2 = errCounter, list1, sorted(nameCode), sorted(myStylesNames)
 
 
 
 els = FilteredElementCollector(doc).OfCategory(
     BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
+
 
 
 mydict = {}

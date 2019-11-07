@@ -57,8 +57,12 @@ for room in rooms:
                 if door.FromRoom[phase]:
                     if door.FromRoom[phase].LookupParameter('Номер').AsString() == room.LookupParameter('Номер').AsString():
                         door_type = doc.GetElement(door.GetTypeId())
-                        area += door_type.LookupParameter('Высота').AsDouble(
-                        ) * door_type.LookupParameter('Ширина').AsDouble()
+                        if door_type.LookupParameter('Высота'):
+                            area += door.LookupParameter('Высота').AsDouble(
+                            ) * door.LookupParameter('Ширина').AsDouble()
+                        else:
+                            area += door.LookupParameter('Высота').AsDouble(
+                            ) * door.LookupParameter('Ширина').AsDouble()
                         # print(door.Id)
                         # print(door_type.LookupParameter('Высота').AsDouble() * door_type.LookupParameter('Ширина').AsDouble())
                         door_counter += 1
@@ -66,8 +70,12 @@ for room in rooms:
                 if door.ToRoom[phase]:
                     if door.ToRoom[phase].LookupParameter('Номер').AsString() == room.LookupParameter('Номер').AsString():
                         door_type = doc.GetElement(door.GetTypeId())
-                        area += door_type.LookupParameter('Высота').AsDouble(
-                        ) * door_type.LookupParameter('Ширина').AsDouble()
+                        if door_type.LookupParameter('Высота'):
+                            area += door_type.LookupParameter('Высота').AsDouble(
+                            ) * door_type.LookupParameter('Ширина').AsDouble()
+                        else:
+                            area += door.LookupParameter('Высота').AsDouble(
+                            ) * door.LookupParameter('Ширина').AsDouble()
                         # print(door.Id)
                         # print(door_type.LookupParameter('Высота').AsDouble() * door_type.LookupParameter('Ширина').AsDouble())
                         door_counter += 1

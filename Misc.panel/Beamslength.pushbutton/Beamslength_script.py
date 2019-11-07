@@ -5,10 +5,13 @@ __author__ = 'SG'
 import clr
 clr.AddReference('System.Core')
 from System.Collections.Generic import *
-from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, ElementId
+from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, ElementId, XYZ, Structure
 
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
+
+from pyrevit import script
+output = script.get_output()
 
 k = 304.8
 k1 = 35.31466672149
@@ -249,7 +252,80 @@ areaSves = 0
 areaOtdelki = 0
 areaGidro = 0
 areaGidroSten = 0
-roofs = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Roofs).WhereElementIsNotElementType().ToElements()
+
+windows = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Windows).WhereElementIsNotElementType().ToElements())
+doors = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Doors).WhereElementIsNotElementType().ToElements())
+for el in windows + doors:
+    symbol = doc.GetElement(el.GetTypeId())
+    description = symbol.LookupParameter('Описание').AsString()
+    el.LookupParameter('Наименование СМ').Set(description)
+    el.LookupParameter('ХТ Длина ОВ').Set(1)
+
+walls = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Walls).WhereElementIsNotElementType().ToElements())
+floors = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Floors).WhereElementIsNotElementType().ToElements())
+roofs = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Roofs).WhereElementIsNotElementType().ToElements())
+fascias = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Fascia).WhereElementIsNotElementType().ToElements())
+struct_connection_types = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructConnections).WhereElementIsElementType().ToElements()
+fake_symbols = [i for i in struct_connection_types if 'Фейк' in i.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()]
+for symbol in fake_symbols:
+    if 'Основа' not in symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString():
+        doc.Delete(symbol.Id)
+struct_connection_types = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructConnections).WhereElementIsElementType().ToElements()
+fake_original_symbol = [i for i in struct_connection_types if 'Фейк' in i.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()][0]
+
+location = XYZ(0, 0, 0)
+fake_symbols = {}
+level = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Levels).WhereElementIsNotElementType().ToElements()[0]
+for exist_el in walls + floors + roofs + fascias:
+    if not exist_el.LookupParameter('Этап').HasValue:
+        exist_el.LookupParameter('Этап').Set(999 * k2)
+
+    exist_symbol = doc.GetElement(exist_el.GetTypeId())
+    description = exist_symbol.LookupParameter('Описание').AsString()
+    if not description:
+        # description = '(Тип) ' + exist_symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()
+        description = exist_symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()
+    for description in description.split('//'):
+        if description not in fake_symbols:
+            new_fake = fake_original_symbol.Duplicate('Фейк_ ' + description)
+            fake_symbols[description] = new_fake
+            # print(description)
+            # print(description.split('((')[0])
+            new_fake.LookupParameter('Описание').Set(description.split('((')[0])
+            key_note = exist_symbol.LookupParameter('Ключевая пометка').AsString()
+            if not key_note:
+                # t.RollBack()
+                print('{} - Не указано значение параметра Ключевая пометка (единица измерения). Назначено значение поумолчанию "м³"'.format(output.linkify(exist_el.Id, description)))
+                key_note = 'м³'
+            new_fake.LookupParameter('Ключевая пометка').Set(key_note)
+            cost = exist_symbol.LookupParameter('Стоимость').AsDouble()
+            if not cost:
+                # t.RollBack()
+                # print('{} - Не указано значение параметра Стоимость (сортировка). Назначено значение поумолчанию "777"'.format(output.linkify(exist_el.Id, description)))
+                cost = 777
+            new_fake.LookupParameter('Стоимость').Set(cost)
+
+        fake_symbol = fake_symbols[description]
+        fake_el = doc.Create.NewFamilyInstance(location, fake_symbol, level, Structure.StructuralType.NonStructural)
+        location += XYZ(0.01, -0.1, 0)
+        key_note = exist_symbol.LookupParameter('Ключевая пометка').AsString()
+        coefficient = 1.1
+        if '((' in description:
+            coefficient = float(description.split('((')[-1].split('))')[0].replace(',', '.'))
+        if key_note == 'м³':
+            value = exist_el.LookupParameter('Объем').AsDouble() / k1 * coefficient
+        elif key_note == 'м²':
+            value = exist_el.LookupParameter('Площадь').AsDouble() / k2 * coefficient
+        elif key_note == 'м':
+            value = exist_el.LookupParameter('Длина').AsDouble() * k * coefficient / 1000
+        # value = 5555
+        fake_el.LookupParameter('ХТ Длина ОВ').Set(value)
+        fake_el.LookupParameter('Наименование СМ').Set(description.split('((')[0])
+        fake_el.LookupParameter('Комментарии').Set(str(exist_el.Id))
+        fake_el.LookupParameter('Этап').Set(exist_el.LookupParameter('Этап').AsDouble())
+
+
+
 for roof in roofs:
     if roof.Name == 'Плита OSB-3, 18 мм':
         areaOSB += roof.LookupParameter('Площадь').AsDouble()
@@ -264,8 +340,6 @@ for roof in roofs:
     elif roof.Name == 'Гидроизоляция стен':
         areaGidroSten += roof.LookupParameter('Площадь').AsDouble()
 
-    if not roof.LookupParameter('Этап').HasValue:
-        roof.LookupParameter('Этап').Set(999 * k2)
 
 
 # Подсчёт Лобовых досок
@@ -281,7 +355,9 @@ for fascia in fascias:
     elif fascia.Name == 'Длина свесов':
         lengthSves += fascia.LookupParameter('Длина').AsDouble()
 
+
 # Запись подсчитанного в фейки
+els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructConnections).WhereElementIsNotElementType().ToElements()
 fakes = [el for el in els if el.LookupParameter('Семейство').AsValueString() == 'Фейк']
 
 for fake in fakes:

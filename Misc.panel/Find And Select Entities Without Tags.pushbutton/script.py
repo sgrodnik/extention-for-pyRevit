@@ -84,6 +84,11 @@ options = {
         tag_type=DB.BuiltInCategory.OST_DuctAccessoryTags,
         element_type=DB.BuiltInCategory.OST_DuctAccessory
         ),
+
+    'Каркас несущий': Taggable(
+        tag_type=DB.BuiltInCategory.OST_StructuralFramingTags,
+        element_type=DB.BuiltInCategory.OST_StructuralFraming
+        ),
 }
 
 selected_switch = \

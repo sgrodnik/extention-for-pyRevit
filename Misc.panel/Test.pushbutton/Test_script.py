@@ -23,53 +23,9 @@ t.Start()
 
 cirs = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalCircuit).WhereElementIsNotElementType().ToElements()
 
-# cir_numbers = {}
-cirs_grouped_by_element = {}
-for cir in cirs:
-    # base_equipment = cir.BaseEquipment
-    element = list(cir.Elements)[0]
-    if element.Id not in cirs_grouped_by_element:
-        cirs_grouped_by_element[element.Id] = []
-    # wire_as_slashed_sring = doc.GetElement(element.GetTypeId()).LookupParameter('КабельСигнальный').AsString()
-    # wire_as_slashed_sring = wire_as_slashed_sring if wire_as_slashed_sring else ''
-    for connector in element.MEPModel.ConnectorManager.Connectors:
-        all_refs = list(connector.AllRefs)
-        if all_refs:
-            if all_refs[0].Owner.Id == cir.Id:
-                # cir_number_relatively_to_element = connector.Id
-                # cir_numbers[cir.Id] = cir_number_relatively_to_element
-                cirs_grouped_by_element[element.Id].append((connector.Id, cir))
-    # if cir.Id not in cir_numbers:
-    #     raise Exception()
 
-cirs_and_their_wires = {}
-for el_id in cirs_grouped_by_element:
-    # print(el_id)
-    el = doc.GetElement(el_id)
-    wire_as_slashed_sring = doc.GetElement(el.GetTypeId()).LookupParameter('КабельСигнальный').AsString()
-    # wire_as_slashed_sring = wire_as_slashed_sring if wire_as_slashed_sring else ''
-    wire_list = wire_as_slashed_sring.split('/')
-    cirs_group = cirs_grouped_by_element[el_id]
-    counter = 0
-    for number, cir in sorted(cirs_group, key=lambda (n, c): n):
-        # print(number)
-        cir_wire = wire_list[counter]
-        counter += 1
-        cirs_and_their_wires[cir.Id] = cir_wire
-
-
-# def sort_factor(cir_id):
-#     return list(doc.GetElement(cir_id).Elements)[0].Id
-
-
-# for cir in cirs:
-#     element = list(cir.Elements)[0]
-#     wire_as_slashed_sring = doc.GetElement(element.GetTypeId()).LookupParameter('КабельСигнальный').AsString()
-#     wire_as_slashed_sring = wire_as_slashed_sring if wire_as_slashed_sring else ''
-
-
-# for cir_id in sorted(cir_numbers, key=sort_factor):
-#     print('{}: {}'.format(cir_id, cir_numbers[cir_id]))
+sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()][0]
+print(sel.PipeSegment)
 
 
 

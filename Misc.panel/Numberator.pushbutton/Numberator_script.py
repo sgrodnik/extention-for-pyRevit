@@ -17,43 +17,52 @@ uidoc = __revit__.ActiveUIDocument
 #     sys.exit()
 
 
-class CustomISelectionFilter(ISelectionFilter):
-    def __init__(self, nom_categorie):
-        self.nom_categorie = nom_categorie
+# class CustomISelectionFilter(ISelectionFilter):
+#     def __init__(self, nom_categorie):
+#         self.nom_categorie = nom_categorie
 
-    def AllowElement(self, e):
-        if self.nom_categorie in e.Category.Name:
-            return True
-        else:
-            return False
+#     def AllowElement(self, e):
+#         if self.nom_categorie in e.Category.Name:
+#             return True
+#         else:
+#             return False
 
-    def AllowReference(self, ref, point):
-        return true
+#     def AllowReference(self, ref, point):
+#         return true
 
 
-i = 1
-try:
-    target = uidoc.Selection.PickObject(ObjectType.Element, CustomISelectionFilter("Пространства"), 'Выберите пространство')
-    target = doc.GetElement(target.ElementId)
-    i = int(target.LookupParameter('Номер').AsString()) + 1
-except:  # Exceptions.OperationCanceledException:
-    pass
+# i = 1
+# try:
+#     target = uidoc.Selection.PickObject(ObjectType.Element, CustomISelectionFilter("Пространства"), 'Выберите пространство')
+#     target = doc.GetElement(target.ElementId)
+#     i = int(target.LookupParameter('Номер').AsString()) + 1
+# except:  # Exceptions.OperationCanceledException:
+#     pass
 
-t = Transaction(doc, 'Перенести марки')
+# t = Transaction(doc, 'Перенести марки')
+# t.Start()
+
+# while 1:
+#     try:
+#         target = uidoc.Selection.PickObject(ObjectType.Element, CustomISelectionFilter("Пространства"), 'Выберите пространство')
+#     except:  # Exceptions.OperationCanceledException:
+#         # t.Commit()
+#         break
+#         # sys.exit()
+
+#     target = doc.GetElement(target.ElementId)
+#     target.LookupParameter('Номер').Set(str(i))
+#     i += 1
+
+t = Transaction(doc, 'Нумератор')
 t.Start()
 
-while 1:
-    try:
-        target = uidoc.Selection.PickObject(ObjectType.Element, CustomISelectionFilter("Пространства"), 'Выберите пространство')
-    except:  # Exceptions.OperationCanceledException:
-        # t.Commit()
-        break
-        # sys.exit()
+sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()]
 
-    target = doc.GetElement(target.ElementId)
-    target.LookupParameter('Номер').Set(str(i))
+i = 1
+for el in sel:
+    el.Text = str(i)
     i += 1
-
 
 
 t.Commit()

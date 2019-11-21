@@ -237,29 +237,34 @@ for cir in cirs:
 
 #-------------Смена режима траектории--------------------
 
-specialElements = ['Рабочая станция', 'Конвертер 3G-SDI/HDMI', 'Розетка HDMI', 'Монитор управления',
-                   'Консоль (розетка HDMI)', 'Переходник DVI-D/HDMI', 'Розетка HDMI', 'Масштабатор', 'Монитор управления', 'USB2']  # список оборудования, от которого прокладка ведётся по кратчайшему пути
-specialPanels = ['MiniPC', 'Монитор обзорный', 'Конвертер HDMI/SDI', 'MiniPC', 'Конвертер HDMI/SDI', 'Розетка HDMI',
-                 'Масштабатор', 'Конвертер HDMI/SDI', 'USB1', 'Compact A3']  # список панелей, к которым прокладка ведётся по кратчайшему пути
+# specialElements = ['Рабочая станция', 'Конвертер 3G-SDI/HDMI', 'Розетка HDMI', 'Монитор управления',
+#                    'Консоль (розетка HDMI)', 'Переходник DVI-D/HDMI', 'Розетка HDMI', 'Масштабатор', 'Монитор управления', 'USB2', 'Блок розеток HDMI, DVI (HDMI), SDI, CVBS, + DVI (HDMI), VGA']  # список оборудования, от которого прокладка ведётся по кратчайшему пути
+# specialPanels = ['MiniPC', 'Монитор обзорный', 'Конвертер HDMI/SDI', 'MiniPC', 'Конвертер HDMI/SDI', 'Розетка HDMI',
+#                  'Масштабатор', 'Конвертер HDMI/SDI', 'USB1', 'Compact A3', 'БААВС']  # список панелей, к которым прокладка ведётся по кратчайшему пути
 
-IN = 0
+from Autodesk.Revit.DB import Electrical
+
+IN = 1
 if IN:
     modes = []
     for index, cir in enumerate(cirs):
         if dividedWires[index] == 'USB 2.0':
-            if cir.CircuitPathMode != Autodesk.Revit.DB.Electrical.ElectricalCircuitPathMode.AllDevices:  # наикратчайший путь
-                cir.CircuitPathMode = Autodesk.Revit.DB.Electrical.ElectricalCircuitPathMode.AllDevices
+            if cir.CircuitPathMode != Electrical.ElectricalCircuitPathMode.AllDevices:  # наикратчайший путь
+                cir.CircuitPathMode = Electrical.ElectricalCircuitPathMode.AllDevices
         else:
-            key = 0
-            for e, p in zip(specialElements, specialPanels):
-                if (e in namesOfTypesOfElements[index]) & (p in namesOfTypesOfPanels[index]):
-                    key = 1
-            if key:
-                if cir.CircuitPathMode != Autodesk.Revit.DB.Electrical.ElectricalCircuitPathMode.AllDevices:  # наикратчайший путь
-                    cir.CircuitPathMode = Autodesk.Revit.DB.Electrical.ElectricalCircuitPathMode.AllDevices
-            else:
-                if cir.CircuitPathMode != Autodesk.Revit.DB.Electrical.ElectricalCircuitPathMode.FarthestDevice:  # путь с диктующей плоскостью
-                    cir.CircuitPathMode = Autodesk.Revit.DB.Electrical.ElectricalCircuitPathMode.FarthestDevice
+            # key = 0
+            # for e, p in zip(specialElements, specialPanels):
+            #     if (e in namesOfTypesOfElements[index]) & (p in namesOfTypesOfPanels[index]):
+            #         key = 1
+            # print(list(cir.Elements)[0].Id)
+            value = doc.GetElement(list(cir.Elements)[0].GetTypeId()).LookupParameter('КабельСиловой').AsString()
+            if value:
+                if 'пут' in value:
+                    if cir.CircuitPathMode != Electrical.ElectricalCircuitPathMode.AllDevices:  # наикратчайший путь
+                        cir.CircuitPathMode = Electrical.ElectricalCircuitPathMode.AllDevices
+            # else:
+            #     if cir.CircuitPathMode != Electrical.ElectricalCircuitPathMode.FarthestDevice:  # путь с диктующей плоскостью
+            #         cir.CircuitPathMode = Electrical.ElectricalCircuitPathMode.FarthestDevice
         modes.append(cir.CircuitPathMode)
 
 #------------Длина с запасом и Дискретная длина----------------
@@ -284,8 +289,12 @@ for wire in dividedWires:
         reserve.append(100)
     elif wire == 'USB 2.0(не включать)':
         reserve.append(100)
+    elif wire == '4×Alarm':
+        reserve.append(0)
+    elif wire == '2×Alarm':
+        reserve.append(0)
     else:
-        reserve.append(2000)
+        reserve.append(1000)
 
 
 # Формируем список длин с запасом
@@ -371,7 +380,9 @@ nameCode = {  # Словарь строк для "Наименования и т
     'RG-174': 'Кабель коаксильный',
     'UTP 4x2x0,52 cat 6e': 'Кабель парной скрутки',
     '3xRCA': 'Кабель передачи аудио-видеосигналов',
-    '20 жильный управляющий кабель': 'Кабель (Уточнить)'
+    '20 жильный управляющий кабель': 'Кабель (Уточнить)',
+    '4×Alarm': 'Кабель специальный',
+    '2×Alarm': 'Кабель специальный',
 }
 markaCode = {  # Словарь строк для "Тип, марка"
     'FTP 4x2x0,52 cat 5e': 'FTP 4x2x0,52 cat 5e',
@@ -394,7 +405,9 @@ markaCode = {  # Словарь строк для "Тип, марка"
     'RG-174': 'RG174',
     'UTP 4x2x0,52 cat 6e': 'UTP 4x2x0,52 cat 6e',
     '3xRCA': '3xRCA',
-    '20 жильный управляющий кабель': '20 жил (Условно)'
+    '20 жильный управляющий кабель': '20 жил (Условно)',
+    '4×Alarm': '4×Alarm',
+    '2×Alarm': '2×Alarm',
 }
 
 naimenovanie = []  # Далее формируем список наименований проводов на основе словаря
@@ -492,7 +505,7 @@ for symbol in symbols:
     if not symbol.IsActive:
         symbol.Activate()
     symbol.LookupParameter('Стоимость').Set(300)
-    for vega in filter(lambda x: 'Compact A3' in x.LookupParameter('Тип').AsValueString(), els):
+    for vega in filter(lambda x: 'Compact A3' in x.LookupParameter('Тип').AsValueString() or 'Блок сетевой управляющий ВЕГА' in x.LookupParameter('Тип').AsValueString(), els):
         el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
         # print(el)
         kol = symbol.LookupParameter('Группа модели').AsString()

@@ -74,7 +74,10 @@ for i in rects:
     sys_name = sys_name if sys_name else 'Не определено'
     if 'Д' in sys_name:
         s = 'δ=1,2'
-    rectsSize.append('{:.0f}×{:.0f}, {}'.format(b, h, s))
+    if i.LookupParameter('Длина').AsDouble() * k > 10:
+        rectsSize.append('{:.0f}×{:.0f}, {}'.format(b, h, s))
+    else:
+        rectsSize.append('Не учитывать {:.0f}×{:.0f}, {}'.format(b, h, s))
 
 roundsDiameter = []  # Диаметр воздуховодов (и гибких)
 for i in rounds:
@@ -133,6 +136,9 @@ for i in insuls:
             insArea.append('non')
     else:
         insArea.append('-')
+    # if str(i.Id) == '741520':
+    #     print(i.LookupParameter('Площадь').AsValueString())
+    #     print(i.LookupParameter('Площадь').AsDouble() / kkk * 1.1 * k)
 
     insType = i.Name
     if host.LookupParameter('Комментарии').AsString() == 'Утепление+':
@@ -277,6 +283,23 @@ for i in list(dFits) + list(terms) + list(dArms) + list(ducts) + list(flexes) + 
         systemNamesVent.append(i.LookupParameter('Имя системы').AsString().split('/')[0])
     else:
         systemNamesVent.append('Не определено')
+
+donelist = []
+for i in terms:
+    if i.LookupParameter('Семейство').AsValueString() == 'Шкаф вытяжной с ребрами':
+        symbol = doc.GetElement(i.GetTypeId())
+        # 300×100; 250×100h; 250×150h
+        if symbol.Id not in donelist:
+            name = str(int(symbol.LookupParameter('Ширина шкафа').AsDouble() * k))
+            name += '×' + str(int(symbol.LookupParameter('Глубина шкафа').AsDouble() * k))
+            name += '; Отв. ▲' + str(int(symbol.LookupParameter('Ширина верхнего отверстия').AsDouble() * k))
+            name += '×' + str(int(symbol.LookupParameter('Высота верхнего отверстия').AsDouble() * k))
+            name += 'h, ▼' + str(int(symbol.LookupParameter('Ширина нижнего отверстия').AsDouble() * k))
+            name += '×' + str(int(symbol.LookupParameter('Высота нижнего отверстия').AsDouble() * k))
+            name += 'h'
+            symbol.LookupParameter('Группа модели').Set(name)
+            donelist.append(symbol.Id)
+
 
 sizesOfTerms = []
 for i in terms:

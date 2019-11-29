@@ -21,13 +21,9 @@ t = Transaction(doc, 'Test')
 
 t.Start()
 
-cirs = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalCircuit).WhereElementIsNotElementType().ToElements()
-
-
-sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()][0]
-print(sel.PipeSegment)
-
-
+startPoint = XYZ(0, 0, 0)
+endPoint = XYZ(10, 10, 0)
+geomLine = Line.CreateBound(startPoint, endPoint)
 
 t.Commit()
 

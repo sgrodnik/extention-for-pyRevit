@@ -20,7 +20,7 @@ output = script.get_output()
 els = FilteredElementCollector(doc).OfCategory(
     BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
 
-for el in els:  # Проверки наличия панелей и количества КабелейСигнальных
+for el in els:
     if el.MEPModel.ElectricalSystems:
         # arr = [cir for cir in list(el.MEPModel.ElectricalSystems) if cir.BaseEquipment.Id != el.Id]
 
@@ -49,6 +49,24 @@ for el in els:  # Проверки наличия панелей и количе
 cirs = FilteredElementCollector(doc).OfCategory(
     BuiltInCategory.OST_ElectricalCircuit).WhereElementIsNotElementType().ToElements()
 
+# if 1: #
+#   import clr
+#   clr.AddReference("RevitServices")
+
+#   import RevitServices
+#   from RevitServices.Persistence import DocumentManager
+#   from RevitServices.Transactions import TransactionManager
+
+#   doc = DocumentManager.Instance.CurrentDBDocument
+
+#   clr.AddReference('RevitAPI')
+#   import Autodesk
+#   from Autodesk.Revit.DB import *
+
+#   clr.AddReference('ProtoGeometry')
+#   from Autodesk.DesignScript.Geometry import *
+
+
 firstElementsOfCirs = [list(cir.Elements)[0].Id for cir in cirs]
 
 pairs = [(key, cir) for key, cir in zip(firstElementsOfCirs, cirs)]
@@ -58,6 +76,10 @@ pairs.sort(key=lambda x: x[0])
 sortedCirs = [p[1] for p in pairs]
 
 cirs = [i for i in sortedCirs]
+
+# print(len(cirs))
+# for i in cirs:
+#     print('{}×{}×{}'.format(i.Id, i.LookupParameter('Имя нагрузки').AsString(), i.LookupParameter('Панель').AsString()))
 
 panels = []  # Далее формируем список панелей цепей
 elements = []  # Далее формируем двумерный список элементов цепей

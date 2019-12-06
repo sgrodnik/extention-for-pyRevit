@@ -100,9 +100,14 @@ with forms.ProgressBar() as pb:
     for el_id in cirs_grouped_by_element:
         el = doc.GetElement(el_id)
         wire_as_slashed_string = doc.GetElement(el.GetTypeId()).LookupParameter('КабельСигнальный').AsString()
-        result = re.findall(r'^\(\(.+\)\)', wire_as_slashed_string)
-        if result:
-            wire_as_slashed_string = wire_as_slashed_string.split('/')
+        brackets = re.findall(r'^\(\(.{1,5}\)\)', wire_as_slashed_string)
+        if brackets:
+            wires = wire_as_slashed_string.replace(brackets[0], '').split('/')
+            newstr = ''
+            for i in wires:
+                newstr += i + ('' if '((' in i else brackets[0]) + '/'
+            newstr += newstr[:-1]
+            wire_as_slashed_string = newstr
         i = 0
         for number, cir in sorted(cirs_grouped_by_element[el_id], key=lambda (n, c): n):
             cir.wire_sring_and_number_by_element = (wire_as_slashed_string, i)
@@ -112,9 +117,21 @@ with forms.ProgressBar() as pb:
     def get_wire_name(cir):
         wire_sring = cir.wire_sring_and_number_by_element[0]
         number_by_element = cir.wire_sring_and_number_by_element[1]
-        # print('{} ------- {} ------- {} ------- {} ------- {}'.format(cir.id, cir.els[0].LookupParameter('Тип').AsValueString(), cir.panel.LookupParameter('Тип').AsValueString(), number_by_element, wire_sring))
-        return wire_sring.split('/')[number_by_element]
+        wire_name = wire_sring.split('/')[number_by_element]
+        brackets = re.findall(r'\(\(.+\)\)', wire_name)
+        if brackets:
+            wire_name = wire_name.replace(brackets[0], '')
+        return wire_name
 
+    def get_strict_length(cir):
+        wire_sring = cir.wire_sring_and_number_by_element[0]
+        number_by_element = cir.wire_sring_and_number_by_element[1]
+        wire_name = wire_sring.split('/')[number_by_element]
+        brackets = re.findall(r'\(\(.+\)\)', wire_name)
+        strict_length = None
+        if brackets:
+            strict_length = float(brackets[0].replace('((', '').replace('))', '').replace(',', '.')) * 1000
+        return strict_length
 
     set_progress(pb, 40)
 
@@ -162,32 +179,44 @@ with forms.ProgressBar() as pb:
 
     set_progress(pb, 50)
 
+    coefficient_for_piece = 1.05
+    coefficient_for_lenght = 1.5
+    piece_names_list = ['HDMI', 'HDMI(не включать)', 'USB 2.0(не включать)', 'VGA']
+    piece_lenght_list = [1, 2, 3, 5, 20]
+
     for cir in Cir.objects:
         wire_name = get_wire_name(cir)
         cir.origin.LookupParameter('КабельЦепи').Set(wire_name)
 
-
         name = dict_[wire_name][0] if wire_name in dict_ else 'Ошибка, добавь в скрипт ' + wire_name
         cir.origin.LookupParameter('Наименование').Set(name)
 
-        coefficient_for_piece = 1.05
-        coefficient_for_lenght = 1.5
-
-        lenght = cir.origin.Length * k * coefficient_for_piece + dict_[wire_name][2]
+        reserve = dict_[wire_name][2] if wire_name in dict_ else 0
+        strict_length = get_strict_length(cir)
+        if strict_length:
+            lenght = strict_length
+        else:
+            lenght = cir.origin.Length * k * coefficient_for_piece + reserve
         mark = dict_[wire_name][1] if wire_name in dict_ else 'Ошибка, добавь в скрипт ' + wire_name
         calc_method = 1
-        if wire_name in ['HDMI', 'HDMI(не включать)', 'USB 2.0(не включать)', 'VGA']:
-            for i in [1, 2, 3, 5, 20]:
-                if lenght <= i * 1000:
-                    lenght = i * 1000
-                    break
-            mark = mark + ', ' + str(lenght / 1000) + ' м'
+        if wire_name in piece_names_list:
+            if strict_length:
+                mark = mark + ', ' + str(int(lenght / 1000)) + ' м'
+            else:
+                for i in piece_lenght_list:
+                    if lenght <= i * 1000:
+                        lenght = i * 1000
+                        break
+                mark = mark + ', ' + str(lenght / 1000) + ' м'
         elif wire_name == 'USB 2.0':
-            mark = mark + ', 3 м'
+            lenght = 2000 if not strict_length else strict_length
+            mark = mark + ', ' + str(lenght / 1000) + ' м'
         else:
             calc_method = 0
-            lenght = ceil(cir.origin.Length * k * coefficient_for_lenght + dict_[wire_name][2] / 1000)
-        # print('{} {} {} '.format(lenght, ceil(lenght / 1000) * 1000, ceil(lenght) / k, ))
+            if strict_length:
+                lenght = strict_length
+            else:
+                lenght = ceil(cir.origin.Length * k * coefficient_for_lenght + reserve / 1000)
         cir.origin.LookupParameter('Длина с запасом').Set(ceil(lenght / 1000) * 1000 / k)
         cir.origin.LookupParameter('Тип, марка').Set(mark)
         cir.origin.LookupParameter('Способ расчёта').Set(calc_method)
@@ -198,15 +227,10 @@ with forms.ProgressBar() as pb:
     set_progress(pb, 60)
 
     els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
-    # for el in filter(lambda x: 'Фейк' in x.LookupParameter('Тип').AsValueString(), els):
-    #     doc.Delete(el.Id)
     [doc.Delete(i.Id) for i in els if 'Фейк' in i.LookupParameter('Тип').AsValueString()]
     els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
-    # for el in filter(lambda x: 'Фейк' not in x.LookupParameter('Тип').AsValueString(), els):
-    #     el.LookupParameter('Количество').Set(0)
     [i.LookupParameter('Количество').Set(0) for i in els if 'Фейк' not in i.LookupParameter('Тип').AsValueString()]
     symbols = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsElementType().ToElements()
-    # symbols = list(filter(lambda x: 'Фейк' in x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString(), symbols))
     symbols = [i for i in symbols if 'Фейк' in i.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()]
     for symbol in symbols:
         symbol.Activate() if not symbol.IsActive else None
@@ -221,17 +245,17 @@ with forms.ProgressBar() as pb:
         if mark not in done:
             done.append(mark)
             if len(done) > len(symbols):
-                raise Exception('Добавь фейков')##################################################################################################### создать скриптом
+                # raise Exception('Добавь фейков')##################################################################################################### создать скриптом
+                name = symbols[-1].Name.split()[0] + str(int(symbols[-1].Name.split()[-1]) + 1) if symbols[-1].Name.split()[-1].isdigit() else ' 1'
+                symbols.append(symbols[-1].Duplicate(name))
             symbol = symbols[len(done) - 1]
             symbol.LookupParameter('Описание').Set(cir.origin.LookupParameter('Наименование').AsString())
             symbol.LookupParameter('Комментарии к типоразмеру').Set(mark)
             symbol.LookupParameter('Ключевая пометка').Set(cir.origin.LookupParameter('Единицы измерения').AsString())
             symbol.LookupParameter('Стоимость').Set(200)
         else:
-            # symbol = list(filter(lambda x: x.LookupParameter('Комментарии к типоразмеру').AsString() == mark, symbols))[0]
             symbol = [i for i in symbols if i.LookupParameter('Комментарии к типоразмеру').AsString() == mark][0]
         el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
-        # cir.LookupParameter('Способ расчёта').Set(sposobRaschyota[i])
         el.LookupParameter('Количество').Set(cir.origin.LookupParameter('Количество').AsDouble())
         el.LookupParameter('Цепь').Set(str(cir.id))
         el.LookupParameter('Помещение').Set(cir.origin.LookupParameter('Помещение').AsString())
@@ -239,22 +263,17 @@ with forms.ProgressBar() as pb:
 
     set_progress(pb, 70)
 
-    # symbols = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsElementType().ToElements()
-    # symbols = list(filter(lambda x: 'офр' in x.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString(), symbols))
     symbols = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsElementType().ToElements()
     symbols = [i for i in symbols if 'офр' in i.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()]
 
     location = XYZ(-1, 0, 0)
     els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
-    # for el in filter(lambda x: 'офр' in x.LookupParameter('Тип').AsValueString(), els):
-    #     doc.Delete(el.Id)
     [doc.Delete(i.Id) for i in els if 'офр' in i.LookupParameter('Тип').AsValueString()]
     els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
     for symbol in symbols:
         if not symbol.IsActive:
             symbol.Activate()
         symbol.LookupParameter('Стоимость').Set(300)
-        # for vega in filter(lambda x: 'Compact A3' in x.LookupParameter('Тип').AsValueString() or 'Блок сетевой управляющий ВЕГА' in x.LookupParameter('Тип').AsValueString(), els):
         for vega in [i for i in els if i.LookupParameter('Тип').AsValueString() in ['Compact A3', 'Блок сетевой управляющий ВЕГА']]:
             el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
             kol = symbol.LookupParameter('Группа модели').AsString()
@@ -287,8 +306,14 @@ with forms.ProgressBar() as pb:
                 model_line = doc.Create.NewModelCurve(line, sketchPlane)
                 name = get_wire_name(cir)
                 if '!мвс ' + name not in [i.Name for i in lineStyles]:
-                    lineStyles.append(cats.NewSubcategory(cats.get_Item(BuiltInCategory.OST_Lines ), '!мвс ' + name))
-                model_line.LineStyle = [i for i in lineStyles if i.Name == '!мвс ' + name][0]
+                    # print(name)
+                    lineStyles.append(cats.NewSubcategory(cats.get_Item(BuiltInCategory.OST_Lines), '!мвс ' + name))
+                # model_line.LineStyle = [i for i in lineStyles if i.Name == '!мвс ' + name][0]
+                for i in lineStyles:#################################################################################################################
+                    if i.Name == '!мвс ' + name:#####################################################################################################
+                        # print(i)###################################################################################################################
+                        model_line.LineStyle = i#####################################################################################################
+                        break########################################################################################################################
 
     set_progress(pb, 90)
 
@@ -321,5 +346,5 @@ with forms.ProgressBar() as pb:
     set_progress(pb, 100)
 
     t.Commit()
-    tg.SetName('{} ({}, {:.1f} с)'.format(tg.GetName(), time.strftime('%H:%M', time.gmtime()), time.time() - startTime))
+    tg.SetName('{} ({}, {:.1f} с)'.format(tg.GetName(), time.strftime('%H:%M', time.localtime()), time.time() - startTime))
     tg.Assimilate()

@@ -16,20 +16,43 @@ app = __revit__.Application
 k = 304.8
 
 
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('IronPython.Wpf')
+from pyrevit import script
 
-t = Transaction(doc, 'Test')
-
-t.Start()
-
-startPoint = XYZ(0, 0, 0)
-endPoint = XYZ(10, 10, 0)
-geomLine = Line.CreateBound(startPoint, endPoint)
-
-t.Commit()
+xamlfile = script.get_bundle_file('test.xaml')
+import wpf
+from System import Windows
 
 
+class MyWindow(Windows.Window):
+	def __init__(self):
+		wpf.LoadComponent(self, xamlfile)
 
+	def yes(self, sender, args):
+		self.sv.Content = ('123456789 ' * 15 + '\n') * 20
+		print(1)
 
+	def no(self, sender, args):
+		print(0)
+		self.Close()
+
+window = MyWindow()
+
+# for i in dir(window):
+# 	print('{:_<50} {}'.format(i, getattr(window, i)))
+
+window.ShowDialog()
+
+# t = Transaction(doc, 'Test')
+
+# t.Start()
+
+# startPoint = XYZ(0, 0, 0)
+# endPoint = XYZ(10, 10, 0)
+# geomLine = Line.CreateBound(startPoint, endPoint)
+
+# t.Commit()
 
 
 

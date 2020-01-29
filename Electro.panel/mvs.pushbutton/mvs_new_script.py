@@ -34,38 +34,39 @@ with forms.ProgressBar() as pb:
 
     default = 2000
     dict_ = {
-       # КабельСигнальный                                         Наименование и техническая…                Тип, марка…                        Запас на разделку
-        'FTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'FTP 4x2x0,52 cat 5e',              default],  # noqa
-        'FTP 5e':                                               ['Кабель парной скрутки',                   'FTP 2x2x0,52 cat 5e',              default],  # noqa
-        'RG174':                                                ['Кабель коаксильный',                      'RG174',                            default],  # noqa
-        'RG-174':                                               ['Кабель коаксильный',                      'RG174',                            default],  # noqa
-        'RG-6U (75 Ом)':                                        ['Кабель коаксильный',                      'RG-6U (75 Ом)',                    default],  # noqa
-        'SAT 703 B':                                            ['Кабель коаксильный',                      'SAT 703 B',                        default],  # noqa
-        'UTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 5e',              default],  # noqa
-        'UTP 4x2x0,52 cat 6a':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6a',              default],  # noqa
-        'UTP 4x2x0,52 cat 6e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6e',              default],  # noqa
-        'Акустический кабель Audiocore Primary Wire M ACS0102': ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default],  # noqa
-        'Акустический кабель':                                  ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default],  # noqa
-        'ВВГнг(А) 3х0,75':                                      ['Кабель силовой',                          'ВВГнг(А) 3х0,75',                  default],  # noqa
-        'ВВГнг(А)-LS 3x1,5':                                    ['Кабель силовой',                          'ВВГнг(А)-LS 3x1,5',                default],  # noqa
-        'КВВГЭ 10х0,75':                                        ['Кабель',                                  'КВВГЭ 10х0,75',                    default],  # noqa
-        'ШВВП 2х0,75':                                          ['Кабель силовой',                          'ШВВП 2х0,75',                      default],  # noqa
-        '20 жильный управляющий кабель':                        ['Кабель (Уточнить)',                       '20 жил (Условно)',                 default],  # noqa
-        '3xRCA':                                                ['Кабель передачи аудио-видеосигналов',     '3xRCA',                            default],  # noqa
-        'HDMI(не включать)':                                    ['Кабель мультимедийный высокоскоростной',  'HDMI(не включать)',                200    ],  # noqa
-        'HDMI':                                                 ['Кабель мультимедийный высокоскоростной',  'HDMI',                             200    ],  # noqa
-        'USB 2.0(не включать)':                                 ['Кабель',                                  'USB 2.0(не включать)',             100    ],  # noqa
-        'USB 2.0':                                              ['Кабель',                                  'USB 2.0',                          100    ],  # noqa
-        'VGA':                                                  ['Кабель видеоинтерфейсный',                'VGA',                              100    ],  # noqa
-        '2×Alarm':                                              ['Кабель специальный',                      '2×Alarm',                          0      ],  # noqa
-        '4×Alarm':                                              ['Кабель специальный',                      '4×Alarm',                          0      ],  # noqa
+       # КабельСигнальный                                        0 Наименование и техническая…              1 Тип, марка…                       2 Запас на разделку 3 Изготовитель
+        'FTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'FTP 4x2x0,52 cat 5e',              default,            'Россия'],  # noqa
+        'FTP 5e':                                               ['Кабель парной скрутки',                   'FTP 2x2x0,52 cat 5e',              default,            'Россия'],  # noqa
+        'RG174':                                                ['Кабель коаксильный',                      'RG174',                            default,            'Россия'],  # noqa
+        'RG-174':                                               ['Кабель коаксильный',                      'RG174',                            default,            'Россия'],  # noqa
+        'RG-6U (75 Ом)':                                        ['Кабель коаксильный',                      'RG-6U (75 Ом)',                    default,            'Россия'],  # noqa
+        'SAT 703 B':                                            ['Кабель коаксильный',                      'SAT 703 B',                        default,            'Россия'],  # noqa
+        'UTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 5e',              default,            'Россия'],  # noqa
+        'UTP 4x2x0,52 cat 6a':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6a',              default,            'Россия'],  # noqa
+        'UTP 4x2x0,52 cat 6e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6e',              default,            'Россия'],  # noqa
+        'Акустический кабель Audiocore Primary Wire M ACS0102': ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default,            'Россия'],  # noqa
+        'ACS0102':                                              ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default,            'Россия'],  # noqa
+        'ВВГнг(А) 3х0,75':                                      ['Кабель силовой',                          'ВВГнг(А) 3х0,75',                  default,            'Россия'],  # noqa
+        'ВВГнг(А)-LS 3x1,5':                                    ['Кабель силовой',                          'ВВГнг(А)-LS 3x1,5',                default,            'Россия'],  # noqa
+        'КВВГЭ 10х0,75':                                        ['Кабель',                                  'КВВГЭ 10х0,75',                    default,            'Россия'],  # noqa
+        'ШВВП 2х0,75':                                          ['Кабель силовой',                          'ШВВП 2х0,75',                      default,            'Россия'],  # noqa
+        '20 жильный управляющий кабель':                        ['Кабель (Уточнить)',                       '20 жил (Условно)',                 default,            'Россия'],  # noqa
+        '3xRCA':                                                ['Кабель передачи аудио-видеосигналов',     '3xRCA',                            default,            'Россия'],  # noqa
+        'HDMI(не включать)':                                    ['Кабель мультимедийный высокоскоростной',  'HDMI(не включать)',                200    ,            'Россия'],  # noqa
+        'HDMI':                                                 ['Кабель мультимедийный высокоскоростной',  'HDMI',                             200    ,            'Россия'],  # noqa
+        'USB 2.0(не включать)':                                 ['Кабель',                                  'USB 2.0(не включать)',             100    ,            'Россия'],  # noqa
+        'USB 2.0':                                              ['Кабель',                                  'USB 2.0',                          100    ,            'Россия'],  # noqa
+        'VGA':                                                  ['Кабель видеоинтерфейсный',                'VGA',                              100    ,            'Россия'],  # noqa
+        '2×Alarm':                                              ['Кабель специальный',                      '2×Alarm',                          0      ,            'Россия'],  # noqa
+        '4×Alarm':                                              ['Кабель специальный',                      '4×Alarm',                          0      ,            'Россия'],  # noqa
     }
 
     els = FilteredElementCollector(doc).OfCategory(
         BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
 
     depr_names = {
-        'Акустический кабель Audiocore Primary Wire M ACS0102': 'Акустический кабель',
+        'Акустический кабель Audiocore Primary Wire M ACS0102': 'ACS0102',
+        'Акустический кабель': 'ACS0102',
     }
     depr_by_name = {}
     for el in els:
@@ -76,6 +77,7 @@ with forms.ProgressBar() as pb:
                     if name not in depr_by_name:
                         depr_by_name[name] = set()
                     depr_by_name[name].add(symbol.Id)
+
     if depr_by_name:
         clr.AddReference('System.Windows.Forms')
         clr.AddReference('IronPython.Wpf')
@@ -85,7 +87,6 @@ with forms.ProgressBar() as pb:
         import wpf
         from System import Windows
 
-        # print(deprs)
 
         class MyWindow(Windows.Window):
             def __init__(self):
@@ -96,8 +97,7 @@ with forms.ProgressBar() as pb:
                     info += 'Устаревший кабель: "{}" следует заменить на новый: "{}":\n'.format(name, depr_names[name])
                     info += '\n'.join([
                         '{:<50}'.format(doc.GetElement(i).LookupParameter('Имя типа').AsString())
-                        + ': '
-                        + doc.GetElement(i).LookupParameter('КабельСигнальный').AsString()
+                        + ': ' + doc.GetElement(i).LookupParameter('КабельСигнальный').AsString()
                         for i in depr_by_name[name]
                     ])
                     info += '\n\n'
@@ -121,9 +121,6 @@ with forms.ProgressBar() as pb:
 
 
         MyWindow().ShowDialog()
-
-
-
 
     for el in els:  # Проверки наличия панелей и количества КабелейСигнальных
         if el.MEPModel.ElectricalSystems:
@@ -168,9 +165,9 @@ with forms.ProgressBar() as pb:
 
     for cir in cirs:
         cir = Cir(cir)
-        cir.origin.LookupParameter('Имя нагрузки').Set(cir.els[0].LookupParameter('Тип').AsValueString())  # Используется имя только первого элемента цепи! Могут быть проблемы при разнородных шлейфах
-        cir.origin.LookupParameter('Помещение').Set(cir.els[0].LookupParameter('Помещение').AsString())  # –//–
-        cir.origin.LookupParameter('Помещение панели').Set(cir.panel.LookupParameter('Помещение').AsString()) if cir.origin.LookupParameter('Помещение панели') else None
+        cir.origin.LookupParameter('Имя нагрузки').Set(cir.els[0].LookupParameter('Тип').AsValueString().replace(' значок выкл', ''))  # Используется имя только первого элемента цепи! Могут быть проблемы при разнородных шлейфах
+        cir.origin.LookupParameter('Помещение').Set(cir.els[0].LookupParameter('Помещение').AsString() or '')  # –//–
+        cir.origin.LookupParameter('Помещение панели').Set(cir.panel.LookupParameter('Помещение').AsString() or '') if cir.origin.LookupParameter('Помещение панели') else None
         cir.panel.LookupParameter('Имя панели').Set(cir.panel.LookupParameter('Тип').AsValueString())
 
     set_progress(pb, 20)
@@ -319,6 +316,8 @@ with forms.ProgressBar() as pb:
             symbol.LookupParameter('Комментарии к типоразмеру').Set(mark)
             symbol.LookupParameter('Ключевая пометка').Set(cir.origin.LookupParameter('Единицы измерения').AsString())
             symbol.LookupParameter('Стоимость').Set(200)
+            # wire = doc.GetElement(cir.els[0].GetTypeId()).LookupParameter('КабельСигнальный').AsString()
+            symbol.LookupParameter('Изготовитель').Set(dict_[get_wire_name(cir)][3])
         else:
             symbol = [i for i in symbols if i.LookupParameter('Комментарии к типоразмеру').AsString() == mark][0]
         el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
@@ -343,9 +342,9 @@ with forms.ProgressBar() as pb:
         symbol.LookupParameter('Стоимость').Set(300)
         for vega in [i for i in els if i.LookupParameter('Тип').AsValueString() in ['Compact A3', 'Блок сетевой управляющий ВЕГА']]:
             el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
-            kol = symbol.LookupParameter('Группа модели').AsString()
+            kol = symbol.LookupParameter('Группа модели').AsString().replace('Фейк', '')
             el.LookupParameter('Количество').Set(float(kol))  # Может быть ошибка, если Группа модели не прописана (её нужно прописывать вручную каждому типу крепежа).
-            el.LookupParameter('Помещение').Set(vega.LookupParameter('Помещение').AsString())
+            el.LookupParameter('Помещение').Set(vega.LookupParameter('Помещение').AsString() or '')
             location += XYZ(0, -0.05, 0)
 
     set_progress(pb, 80)
@@ -396,7 +395,7 @@ with forms.ProgressBar() as pb:
 
     for el in els:
         if el.GetSubComponentIds():
-            room_name = el.LookupParameter('Помещение').AsString()
+            room_name = el.LookupParameter('Помещение').AsString() or ''
             for sub_el_id in el.GetSubComponentIds():
                 doc.GetElement(sub_el_id).LookupParameter('Помещение').Set(room_name)
 
@@ -404,11 +403,12 @@ with forms.ProgressBar() as pb:
     for el in els:
         symbol = doc.GetElement(el.GetTypeId())
         if symbol.LookupParameter('Изображение типоразмера').AsElementId().ToString() == '-1':
-            if symbol.LookupParameter('URL').AsString() != 'Без УГО':
+            if 'Без УГО' not in symbol.LookupParameter('URL').AsString():
                 name = symbol.LookupParameter('Имя типа').AsString()
                 if name not in mydict.keys():
                     mydict[name] = []
                 mydict[name].append(el.Id)
+        symbol.LookupParameter('Стоимость').Set(0) if not symbol.LookupParameter('Стоимость').AsDouble() else None
 
     if mydict:
         if len(mydict.keys()) == 1:

@@ -110,6 +110,7 @@ for space in sorted(spaces, key=lambda x: x.LookupParameter('Номер').AsStri
         if s[-1] == ',':
             s = s[:-1]
         old_s = space.LookupParameter('Комментарии').AsString()
+        old_s = old_s if old_s else ''
         if old_s != s:
             space.LookupParameter('Комментарии').Set(s)
             report.append([num, old_s.replace('\n', '<br>'), s.replace('\n', '<br>')])

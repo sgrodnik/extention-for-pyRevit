@@ -12,8 +12,8 @@ from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Transac
 doc = __revit__.ActiveUIDocument.Document
 uidoc = __revit__.ActiveUIDocument
 
-t = Transaction(doc, 'Выбрать приток')
-t.Start()
+# t = Transaction(doc, 'Выбрать приток')
+# t.Start()
 
 k = 304.8
 
@@ -35,11 +35,15 @@ ductAccessories = FilteredElementCollector(doc)\
 
 lst = list(ducts) + list(flexDucts) + list(ductFittings) + list(ductAccessories)
 
-result = []
-for el in lst:
-	if el.LookupParameter('Классификация систем').AsString() == 'Приточный воздух':
-		result.append(el.Id)
+arr = [663639,666083,663639,666090,663639,666095,663639,666116,663733,666083,663733,666095,663928,665853,663928,665939,663928,666083,663952,666083,663952,666095,664041,666095,664274,665853,664530,666090,664539,666090,664541,666090,664541,666178,664546,666090
+]
+uidoc.Selection.SetElementIds(List[ElementId]([ElementId(i) for i in arr]))
 
-uidoc.Selection.SetElementIds(List[ElementId](result))
+# result = []
+# for el in lst:
+#     if el.LookupParameter('Классификация систем').AsString() == 'Приточный воздух':
+#         result.append(el.Id)
 
-t.Commit()
+# uidoc.Selection.SetElementIds(List[ElementId](result))
+
+# t.Commit()

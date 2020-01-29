@@ -8,7 +8,7 @@ from pyrevit.loader import sessioninfo
 
 
 __cleanengine__ = True
-__context__ = 'zerodoc'
+# __context__ = 'zerodoc'
 __doc__ = 'Searches the script folders and create buttons ' \
           'for the new script or newly installed extensions.'
 

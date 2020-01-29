@@ -23,15 +23,21 @@ t.Start()
 els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType().ToElements()
 for el in els:
     dimL = el.LookupParameter('Фактическая длина').AsDouble() * k
-    el.LookupParameter('ADSK_Размер_Длина').Set(dimL / k)
     dimB = el.LookupParameter('ADSK_Размер_Высота').AsDouble() * k
     dimH = el.LookupParameter('ADSK_Размер_Ширина').AsDouble() * k
     name = ' {:.0f}×{:.0f}'.format(min([dimB, dimH]), max([dimB, dimH]))
+    if el.LookupParameter('Семейство').AsValueString() == 'Плита':
+        dimL = doc.GetElement(el.GetTypeId()).LookupParameter('h').AsDouble() * k
+        name = ' {:.0f}×{:.0f}'.format(max([dimB, dimH]), min([dimB, dimH]))
+    el.LookupParameter('ADSK_Размер_Длина').Set(dimL / k)
     el.LookupParameter('ADSK_Марка').Set(name)
     if dimB >= 100 and dimH >= 100:
         name = 'Брус'
     else:
         name = 'Брусок' if dimB == dimH else 'Доска'
+    name += ' клееный из шпона (ЛВЛ)' if 'Кле' in el.LookupParameter('Тип').AsValueString() else ''
+    if el.LookupParameter('Семейство').AsValueString() == 'Плита':
+        name = 'Плита типа ОСП-3, шлифованная, класса эмиссии Е1'
     doc.GetElement(el.GetTypeId()).LookupParameter('Описание').Set(name)
     zapas = 1.0 if 'Кле' in el.LookupParameter('Тип').AsValueString() else 1.1
     el.LookupParameter('ADSK_Количество').Set(dimL * dimB * dimH / 10**9 * zapas)
@@ -42,12 +48,21 @@ for el in els:
 els = [el for el in sorted(els, key=lambda x: x.LookupParameter('Фактическая длина').AsDouble(), reverse=True)]
 els = [el for el in sorted(els, key=lambda x: float('.'.join(map(lambda x: '{:0>5}'.format(x), x.LookupParameter('ADSK_Марка').AsString().split('×')))), reverse=True)]
 els = [el for el in sorted(els, key=lambda x: x.LookupParameter('Этап').AsDouble())]
+els = [el for el in sorted(els, key=lambda x: x.LookupParameter('Семейство').AsValueString() == 'Плита')]
+
+# for i in els:
+#     print('{:<10} {:<10} {:<10} '.format(
+#         i.LookupParameter('Этап').AsDouble(),
+#         i.LookupParameter('ADSK_Марка').AsString(),
+#         i.LookupParameter('Фактическая длина').AsDouble() * k,
+#     ))
 
 # Простановка Позиции
 i = 0
 part = 0
 name = 0
 length = 0
+done = {}
 for el in els:
     if 'Не СЭ' in el.LookupParameter('Тип').AsValueString():
         continue
@@ -55,9 +70,17 @@ for el in els:
     newname = el.LookupParameter('ADSK_Марка').AsString()
     newlength = round(el.LookupParameter('Фактическая длина').AsDouble() * k, 0)
     if part != newpart or name != newname or length != newlength:
-        i += 1
+        if (newname, newlength) not in done:
+            i += 1
+            done[(newname, newlength)] = i
         part, name, length = newpart, newname, newlength
-    el.LookupParameter('ADSK_Позиция').Set(str(i))
+    # if (newname, newlength) not in done:
+    #     el.LookupParameter('ADSK_Позиция').Set(str(i))
+    position = done[(newname, newlength)]
+    # print(position)
+    el.LookupParameter('ADSK_Позиция').Set(str(position))
+    # else:
+    #     el.LookupParameter('ADSK_Позиция').Set(str(i))
 
 
 els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructConnections).WhereElementIsNotElementType().ToElements()

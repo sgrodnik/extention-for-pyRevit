@@ -62,6 +62,7 @@ sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()]
 i = 1
 for el in sel:
     el.Text = str(i)
+    # el.LookupParameter('Текст').Set(str(i))
     i += 1
 
 

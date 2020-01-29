@@ -19,13 +19,18 @@ t.Start()
 
 if len(sel) == 1:
     target = sel[0]
-    cutting_ids = uidoc.Selection.PickObjects(ObjectType.Element, 'Выберите элеманты, которые будут вырезаны из целевого')
+    cutting_ids = uidoc.Selection.PickObjects(ObjectType.Element, 'Выберите элементы, которые будут вырезаны из целевого')
     cutting_els = [doc.GetElement(elid.ElementId) for elid in cutting_ids]
     for el in cutting_els:
         if SolidSolidCutUtils.CanElementCutElement(target, el):
             SolidSolidCutUtils.AddCutBetweenSolids(doc, target, el)
 else:
-    print('else')
+    targets = sel
+    cutting_id = uidoc.Selection.PickObject(ObjectType.Element, 'Выберите элемент, который будет вырезан из целевых')
+    el = doc.GetElement(cutting_id.ElementId)
+    for target in targets:
+        if SolidSolidCutUtils.CanElementCutElement(target, el):
+            SolidSolidCutUtils.AddCutBetweenSolids(doc, target, el, False)
 
 # framings = []
 # joints = []

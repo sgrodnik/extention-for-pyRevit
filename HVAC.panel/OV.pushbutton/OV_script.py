@@ -46,6 +46,8 @@ pipeInsuls = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_PipeIn
 equipments = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElements()  # Оборудование
 fakes = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_GenericModel).WhereElementIsNotElementType().ToElements()  # Обобщенные модели
 piping_systems = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_PipingSystem).WhereElementIsNotElementType().ToElements()  # Обобщенные модели
+sanitary = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_PlumbingFixtures).WhereElementIsNotElementType().ToElements()  # Оборудование
+[equipments.Add(i) for i in sanitary]
 
 k = 304.8
 rad = 57.2957795130823
@@ -145,7 +147,13 @@ for i in insuls:
         insThickness.append('δ=32')
 #   insType = doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.ELEM_CATEGORY_PARAM).AsValueString()
     elif 'пожар' in insType or 'гнеза' in insType:
-        insThickness.append('IE30')
+        # insThickness.append('IE30')
+        koms = doc.GetElement(i.GetTypeId()).LookupParameter('Комментарии к типоразмеру').AsString()
+        if koms:
+            insThickness.append(koms)
+        else:
+            insThickness.append('')
+        # insThickness.append('IE60, δ=20') # Для медси (для других надо удалить). Надо продумать аналогию с оборудой
     else:
         insThickness.append('δ=10')
 
@@ -287,16 +295,22 @@ for i in list(dFits) + list(terms) + list(dArms) + list(ducts) + list(flexes) + 
 donelist = []
 for i in terms:
     if i.LookupParameter('Семейство').AsValueString() == 'Шкаф вытяжной с ребрами':
+        i.LookupParameter('Высота потолка').Set(i.LookupParameter('Смещение').AsDouble())
         symbol = doc.GetElement(i.GetTypeId())
         # 300×100; 250×100h; 250×150h
         if symbol.Id not in donelist:
+            height_bottom = int(symbol.LookupParameter('Высота нижнего отверстия').AsDouble() * k)
+            height_bottom = height_bottom if height_bottom > 100 else 100
+            height_top = int(symbol.LookupParameter('Высота верхнего отверстия').AsDouble() * k)
+            height_top = height_top if height_top > 100 else 100
             name = str(int(symbol.LookupParameter('Ширина шкафа').AsDouble() * k))
             name += '×' + str(int(symbol.LookupParameter('Глубина шкафа').AsDouble() * k))
-            name += '; Отв. ▲' + str(int(symbol.LookupParameter('Ширина верхнего отверстия').AsDouble() * k))
-            name += '×' + str(int(symbol.LookupParameter('Высота верхнего отверстия').AsDouble() * k))
+            name += '; Отверстия: ▲' + str(int(symbol.LookupParameter('Ширина верхнего отверстия').AsDouble() * k))
+            name += '×' + str(height_top)
             name += 'h, ▼' + str(int(symbol.LookupParameter('Ширина нижнего отверстия').AsDouble() * k))
-            name += '×' + str(int(symbol.LookupParameter('Высота нижнего отверстия').AsDouble() * k))
-            name += 'h'
+            name += '×' + str(height_bottom)
+            name += 'h;'
+            name += '\nполная высота стены ' + str(int(i.LookupParameter('Смещение').AsDouble() * k)) + ' мм'
             symbol.LookupParameter('Группа модели').Set(name)
             donelist.append(symbol.Id)
 
@@ -461,15 +475,15 @@ for pFit in pFits:
                     #         way = 4
                     #         size = size.split('-')[0]
                 else:
-                    raise Exception('Дописать тут')
+                    # raise Exception('Дописать тут')
 
-                    # size = float(size)
+                    size = float(size)
                     # if size in pipesDict:
                     #     way = 5
                     #     size= pipesDict[size]
                     # else:
                     #     way = 6
-                    #     size = 'Dу{:.0f}'.format(size)
+                    size = 'Dу{:.0f}'.format(size)
     else:
         size = 'Не определено'
     pFit.LookupParameter('ХТ Размер фитинга ОВ').Set(size)
@@ -652,6 +666,12 @@ for i, pos in enumerate(equipments):
         pos.LookupParameter('ХТ Имя системы').Set(equipmentSystems[i])
     if equipmentsSizes[i] != '':
         pos.LookupParameter('ХТ Размер фитинга ОВ').Set(equipmentsSizes[i])
+    if pos.LookupParameter('Категория').AsValueString() == 'Сантехнические приборы':
+        # print(11)
+        # if 'В1' in pos.LookupParameter('Имя системы').AsString():
+            # print(222)
+        pos.LookupParameter('ХТ Имя системы').Set('В1')
+
 
 for i, pos in enumerate(terms):
     pos.LookupParameter('ХТ Размер фитинга ОВ').Set(sizesOfTerms[i])
@@ -1041,6 +1061,8 @@ for i in all:
                     sort = '600 ПП' + sysName[2:]
                 elif sysName[:2] == 'ПЕ':
                     sort = '700 ПЕ' + sysName[2:]
+                elif sysName[:2] == 'ПД':
+                    sort = '800 ПД' + sysName[2:]
             elif sysName[0] == 'В':
                 if sysName[1].isdigit():
                     sort = sysName[1:] + ' 2 Вытяжка'
@@ -1063,13 +1085,24 @@ for i in all:
             #     sort += ' 2' if sysName[0] == 'В' else ''
             #     sort += ' 3' if sysName[:2] == 'T1' else ''
             #     sort += ' 4' if sysName[:2] == 'T2' else ''
-            # if i.LookupParameter('ХТ Имя системы').AsString() == 'T1':
+            # if i.LookupParameter('ХТ Имя системы').AsStr ing() == 'T1':
                 # print(sort.replace(' ', '*'))
             # print(i.Id)
             i.LookupParameter('Сортировка строка').Set(sort)
             # i.LookupParameter('Сортировка').Set(sort)
     # else:
         # print('isinstance({}, str)'.format(i))
+errors = {}
+for i in all:
+    if not doc.GetElement(i.GetTypeId()).LookupParameter('Стоимость').HasValue:
+        if i.GetTypeId() not in errors:
+            errors[i.GetTypeId()] = output.linkify(i.Id)
+if errors:
+    print('Следует прописать стоимость для сортировки и подсчёта количества:\n{}'.format(' '.join([errors[k] for k in errors])))
+
+for i in all:
+    if i.LookupParameter('ХТ Имя системы').AsString():
+        i.LookupParameter('ХТ Имя системы отступ').Set('‎' + ' ' * 90 + i.LookupParameter('ХТ Имя системы').AsString())
 
 OUT = ['{} {} Фейк для кронштейнов'.format(len(fakesForBrackets), len(uniqueSystemAndSize)),
 '{} {} Фейк для площади'.format(len(fakesForArea), len(uniqueSystems)),

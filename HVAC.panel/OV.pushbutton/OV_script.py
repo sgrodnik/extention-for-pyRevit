@@ -295,7 +295,8 @@ for i in list(dFits) + list(terms) + list(dArms) + list(ducts) + list(flexes) + 
 donelist = []
 for i in terms:
     if i.LookupParameter('Семейство').AsValueString() == 'Шкаф вытяжной с ребрами':
-        i.LookupParameter('Высота потолка').Set(i.LookupParameter('Смещение').AsDouble())
+        h = i.LookupParameter('Смещение').AsDouble()
+        i.LookupParameter('Высота потолка').Set(h if h > 2000 else 3000 / k)
         symbol = doc.GetElement(i.GetTypeId())
         # 300×100; 250×100h; 250×150h
         if symbol.Id not in donelist:
@@ -1068,6 +1069,10 @@ for i in all:
                     sort = sysName[1:] + ' 2 Вытяжка'
             elif sysName[:2] == 'ДУ':
                 sort = '500 ДУ' + sysName[2:]
+            elif sysName[:2] == 'ДП':
+                sort = '400 Д' + sysName[2:] + ' 1 Приток'
+            elif sysName[:2] == 'ДВ':
+                sort = '400 Д' + sysName[2:] + ' 2 Вытяжка'
             elif sysName[:2] == 'T1':
                 sort = str(1000 + int(sysName.split()[-1] if sysName.split()[-1].isdigit() else '00')) + ' T1'
             elif sysName[:2] == 'T2':

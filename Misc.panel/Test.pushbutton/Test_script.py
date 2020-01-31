@@ -19,6 +19,18 @@ k = 304.8
 from pyrevit import script
 output = script.get_output()
 
+t = Transaction(doc, 'Test')
+t.Start()
+els = FilteredElementCollector(doc).WhereElementIsElementType().ToElements()
+for el in els:
+    if el.LookupParameter('Изготовитель'):
+        if el.LookupParameter('Изготовитель').HasValue:
+            old = el.LookupParameter('Изготовитель').AsString() == 'Лиссант'
+            if old:
+                el.LookupParameter('Изготовитель').Set('Россия')
+                print('{} {}'.format(old, el.LookupParameter('Имя типа').AsString()))
+t.Commit()
+
 
 # sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()]
 
@@ -57,41 +69,41 @@ output = script.get_output()
 # #       output.print_html('Uninitiaized')
 # #   print()
 
-all_filters = FilteredElementCollector(doc).OfClass(ParameterFilterElement).ToElements()
-# for i in all_filters:
-#   print(i.Name)
+# all_filters = FilteredElementCollector(doc).OfClass(ParameterFilterElement).ToElements()
+# # for i in all_filters:
+# #   print(i.Name)
 
-t = Transaction(doc, 'Test')
-t.Start()
+# t = Transaction(doc, 'Test')
+# t.Start()
 
-names = ['В1', 'В2', 'В3', 'В12', 'В20', 'В172', 'ДУ5', 'К1', 'К2', 'К3', 'К12', 'К20', 'П30', 'ПД16', ]
+# names = ['В1', 'В2', 'В3', 'В12', 'В20', 'В172', 'ДУ5', 'К1', 'К2', 'К3', 'К12', 'К20', 'П30', 'ПД16', ]
 
-cats = List[ElementId]([
-    ElementId(BuiltInCategory.OST_DuctAccessory),
-    ElementId(BuiltInCategory.OST_DuctCurves),
-    ElementId(BuiltInCategory.OST_DuctFitting),
-    ElementId(BuiltInCategory.OST_DuctInsulations),
-    ElementId(BuiltInCategory.OST_DuctTerminal),
-    ElementId(BuiltInCategory.OST_FlexDuctCurves),
-])
+# cats = List[ElementId]([
+#     ElementId(BuiltInCategory.OST_DuctAccessory),
+#     ElementId(BuiltInCategory.OST_DuctCurves),
+#     ElementId(BuiltInCategory.OST_DuctFitting),
+#     ElementId(BuiltInCategory.OST_DuctInsulations),
+#     ElementId(BuiltInCategory.OST_DuctTerminal),
+#     ElementId(BuiltInCategory.OST_FlexDuctCurves),
+# ])
 
 
-for name in names:
-    pfilter = parameterFilterElement = ParameterFilterElement.Create(
-        doc,
-        name + ' не',
-        cats,
-        ElementParameterFilter(ParameterFilterRuleFactory.CreateNotEqualsRule(ElementId(BuiltInParameter.RBS_SYSTEM_NAME_PARAM), name, True))
-    )
-    # doc.ActiveView.Duplicate(name).SetFilterVisibility([i.Id for i in all_filters if i.Name == name + ' не'][0], False)
-    print(name)
-    new_view = doc.GetElement(doc.ActiveView.Duplicate(ViewDuplicateOption.Duplicate))
-    new_view.Name = name
-    new_view.SetFilterVisibility(pfilter.Id, False)
+# for name in names:
+#     pfilter = parameterFilterElement = ParameterFilterElement.Create(
+#         doc,
+#         name + ' не',
+#         cats,
+#         ElementParameterFilter(ParameterFilterRuleFactory.CreateNotEqualsRule(ElementId(BuiltInParameter.RBS_SYSTEM_NAME_PARAM), name, True))
+#     )
+#     # doc.ActiveView.Duplicate(name).SetFilterVisibility([i.Id for i in all_filters if i.Name == name + ' не'][0], False)
+#     print(name)
+#     new_view = doc.GetElement(doc.ActiveView.Duplicate(ViewDuplicateOption.Duplicate))
+#     new_view.Name = name
+#     new_view.SetFilterVisibility(pfilter.Id, False)
 
-# doc.ActiveView.SetFilterVisibility([i.Id for i in all_filters if i.Name == 'К1 не'][0], False)
+# # doc.ActiveView.SetFilterVisibility([i.Id for i in all_filters if i.Name == 'К1 не'][0], False)
 
-t.Commit()
+# t.Commit()
 
 # els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType().ToElements()
 # sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()]

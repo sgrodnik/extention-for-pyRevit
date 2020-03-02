@@ -254,21 +254,21 @@ for i in list(dFits) + list(dArms):
             x, y = xxx, yyy
 
             if y == 'up':
-                if x == 'left': type_ = 'Тип 1'
-                if x == 'center': type_ = 'Тип 2'
-                if x == 'right': type_ = 'Тип 3'
-                if x == 'error': type_ = 'Error'
+                if x == 'left': type = 'Тип 1'
+                if x == 'center': type = 'Тип 2'
+                if x == 'right': type = 'Тип 3'
+                if x == 'error': type = 'Error'
             if y == 'down':
-                if x == 'left': type_ = 'Тип 3'
-                if x == 'center': type_ = 'Тип 2'
-                if x == 'right': type_ = 'Тип 1'
-                if x == 'error': type_ = 'Error'
+                if x == 'left': type = 'Тип 3'
+                if x == 'center': type = 'Тип 2'
+                if x == 'right': type = 'Тип 1'
+                if x == 'error': type = 'Error'
             if y == 'center':
-                if x == 'left': type_ = 'Тип 2 поворот'
-                if x == 'center': type_ = 'Тип 4'
-                if x == 'right': type_ = 'Тип 2 поворот'
-                if x == 'error': type_ = 'Error'
-            if y == 'error': type_ = 'Error'
+                if x == 'left': type = 'Тип 2 поворот'
+                if x == 'center': type = 'Тип 4'
+                if x == 'right': type = 'Тип 2 поворот'
+                if x == 'error': type = 'Error'
+            if y == 'error': type = 'Error'
 
             sizeAsList = size.replace('-', '×').split('×')
 
@@ -278,14 +278,14 @@ for i in list(dFits) + list(dArms):
                 x2 = sizeAsList[2]
                 y2 = sizeAsList[3]
             except:
-                type_ = 'Error:Equal'
+                type = 'Error:Equal'
                 x2 = '0'
                 y2 = '0'
 
-            if 'поворот' in type_:
+            if 'поворот' in type:
                 size = y1 + '×' + x1 + '-' + y2 + '×' + x2 + ', Тип 2'
             else:
-                size = x1 + '×' + y1 + '-' + x2 + '×' + y2 + ', ' + type_
+                size = x1 + '×' + y1 + '-' + x2 + '×' + y2 + ', ' + type
 
     sizes.append(size)
 
@@ -350,21 +350,20 @@ for i in terms:
     # -------------------------------------- Трубы --------------------------------------------
 
 
-# pipesHolod = []  # -------------------------------------- Трубы -------------------------
-# pipesOther = []
-# for i in pipes:
-#     if i.LookupParameter('Имя системы').AsString():
-#         system = i.LookupParameter('Имя системы').AsString().split('/')[0]
-#         if 'Х' in system and 'Х1.' not in system and 'Х2.' not in system and 'Х3.' not in system and 'Х4.' not in system:  # Кириллическая Ха
-#             pipesHolod.append(i)
-#         else:
-#             pipesOther.append(i)
+pipesHolod = []  # -------------------------------------- Трубы -------------------------
+pipesOther = []
+for i in pipes:
+    if i.LookupParameter('Имя системы').AsString():
+        system = i.LookupParameter('Имя системы').AsString().split('/')[0]
+        if 'Х' in system and 'Х1.' not in system and 'Х2.' not in system and 'Х3.' not in system and 'Х4.' not in system:  # Кириллическая Ха
+            pipesHolod.append(i)
+        else:
+            pipesOther.append(i)
 
 pipesDict = {
     6.35 : '1/4" (6,35 mm)',
     9.52 : '3/8" (9,52 mm)',
     12.7 : '1/2" (12,7 mm)',
-    15.88: '5/8" (15,9 mm)',
     15.9 : '5/8" (15,9 mm)',
     19.05: '3/4" (19,05 mm)',
     22.23: '7/8" (22,23 mm)',
@@ -374,296 +373,270 @@ pipesDict = {
     34.93: '1-3/8" (34,93 mm)',
     41.28: '1-5/8" (41,28 mm)'
 }
-
-# systemNamesOther = []
-# sizesOfPipesOther = []
-# for i in pipesOther:
-#     system = i.LookupParameter('Имя системы').AsString().split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
-#     system = system.replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.')
-#     systemNamesOther.append(system)
-#     size = i.LookupParameter('Диаметр').AsDouble() * k
-#     if 'T1 ' in system or 'T2 ' in system:  # Латинская t
-#         if system.split()[1] in systemOtherDict:
-#             sizesOfPipesOther.append(systemOtherDict[system.split()[1]])
-#         else:
-#             if 'T1 К' in system or 'T2 К' in system:
-#                 sizesOfPipesOther.append('ø{:.0f}'.format(size))
-#             else:
-#                 sizesOfPipesOther.append('Не определено')
-#     elif size in pipesDict:
-#         sizesOfPipesOther.append(pipesDict[size])
-#     else:
-#         sizesOfPipesOther.append('ø{:.0f}'.format(size))
-
-# systemDict = {
-#     '101': 'ø40',
-#     '102': 'ø50',
-#     '103': 'ø50',
-#     '106': 'ø50',
-#     '107': 'ø50',
-#     '107а': 'ø40',
-#     '108': 'ø40'
+# systemOtherDict = { Ростов на Дону вроде
+#     '101': 'Dу20',
+#     '102': 'Dу25',
+#     '103': 'Dу25',
+#     '104': 'Dу20',
+#     '106': 'Dу25',
+#     '107': 'Dу25',
+#     '107а': 'Dу20',
+#     '108': 'Dу20',
+#     '109': 'Dу20',
+#     '110': 'Dу20'
 # }
 
-# systemNamesHolod = []
-# sizesOfPipesHolod = []
-# for i in pipesHolod:
-#     systemName = i.LookupParameter('Имя системы').AsString().split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
-#     systemName = systemName.replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.')
-#     systemNamesHolod.append(systemName)
-#     if 'Х1' == systemName or 'Х2' == systemName:  # Системы магистальных участков
-#         size = i.LookupParameter('Диаметр').AsDouble() * k
-#         sizesOfPipesHolod.append('ø{:.0f}'.format(size))
-#     else:
-#         size = i.LookupParameter('Диаметр').AsDouble() * k
-#         sizesOfPipesHolod.append('ø{:.0f}'.format(size))
-# #       if systemName.split()[1] in systemDict:
-# #           sizesOfPipesHolod.append(systemDict[systemName.split()[1]])
-# #       else:
-# #           sizesOfPipesHolod.append('Не определено')
+systemOtherDict = {
+    '01': 'Dу32',
+    '02': 'Dу32',
+    '03': 'Dу32',
+    '04': 'Dу32',
+    '05': 'Dу25',
+    '06': 'Dу32',
+    '07': 'Dу15',
+    '08': 'Dу32',
+}
 
-
-def clean_sys_name(sys_name):
-    sys_name = sys_name.split('/')[0]
-    sys_name = sys_name.replace('Х1.', 'Х.').replace('Х2.', 'Х.').replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.')
-    return sys_name
-
-
-for el in pipes:
-    sys_name = clean_sys_name(el.LookupParameter('Имя системы').AsString())
-    el.LookupParameter('ХТ Имя системы').Set(sys_name)
-
-    size = el.LookupParameter('Диаметр').AsDouble() * k
-    if size in pipesDict:
-        size = pipesDict[size]
-    else:
-        size = 'ø{:.0f}'.format(size)
-    el.LookupParameter('ХТ Размер фитинга ОВ').Set(size)
-
-
-
-
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
- # -------------------------------------- Фитинги и арматура труб -------------------------
-
-
-# # sizesOfFits = []  # -------------------------------------- Фитинги и арматура труб -------------------------
-# # systemNamesOfFits = []
-# # LenOfFits = []
-# for pFit in pFits:
-#     systemName = 'Не определено'
-#     originalSystemName = pFit.LookupParameter('Имя системы').AsString()
-#     if originalSystemName:
-#         systemName = originalSystemName.split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
-#         systemName = systemName.replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.')
-#     pFit.LookupParameter('ХТ Имя системы').Set(systemName)
-
-
-#     # if 'T1 ' in systemName or 'T2 ' in systemName:  # Латинская t
-#     #     if systemName.split()[1] in systemOtherDict:
-#     #         sizesOfFits.append(systemOtherDict[systemName.split()[1]])
-#     #     else:
-#     #         sizesOfFits.append('Не определено0')
-#     # elif 'Х1 ' in systemName or 'Х2 ' in systemName:
-#     #     if systemName.split()[1] in systemDict:
-#     #         sizesOfFits.append(systemDict[systemName.split()[1]])
-#     #     else:
-#     #         sizesOfFits.append('Не определено1')
-#     if 'Не учитывать' not in originalSystemName:
-#         size = pFit.LookupParameter('Размер').AsString()
-#         # if doc.GetElement(pFit.GetTypeId()).LookupParameter('Описание').AsString() and 'ройник' in doc.GetElement(pFit.GetTypeId()).LookupParameter('Описание').AsString():
-#         if 'ройник' in pFit.LookupParameter('Тип').AsValueString():
-#             size = 'ø' + size.replace(',00 мм', '')
-#             # sizesOfFits.append(size)
-#             way = 1
-#         else:
-#             # if size:
-#                 size = size.split()[0].replace(',', '.')
-#                 if '-' in size:
-#                     arr = size.split('-')
-#                     if len(arr) == 2:
-#                         if arr[0] == arr[1]:
-#                             size = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else 'ø' + size
-#                         else:
-#                             part0 = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else arr[0]
-#                             part1 = pipesDict[float(arr[1])] if float(arr[1]) in pipesDict else arr[1]
-#                             size = '{} - {}'.format(part0, part1)
-#                     elif len(arr) == 3:
-#                             if arr[0] == arr[1] == arr[2]:
-#                                 size = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else 'ø' + size
-#                             else:
-#                                 part0 = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else arr[0]
-#                                 part1 = pipesDict[float(arr[1])] if float(arr[1]) in pipesDict else arr[1]
-#                                 part2 = pipesDict[float(arr[2])] if float(arr[2]) in pipesDict else arr[2]
-#                                 size = '{} - {} - {}'.format(part0, part1, part2)
-
-#                     # try:
-#                     #     size = '{}-{}'.format(pipesDict[size.split('-')[0]] + pipesDict[size.split('-')[1]])
-#                     #     way = 2
-#                     # except KeyError:
-#                     #     way = 3
-#                     #     if size.split('-')[0] == size.split('-')[1]:
-#                     #         way = 4
-#                     #         size = size.split('-')[0]
-#                 else:
-#                     # raise Exception('Дописать тут')
-
-#                     if size in pipesDict:
-#                     #     way = 5
-#                         size = pipesDict[size]
-#                     else:
-#                         size = float(size)
-#                     #     way = 6
-#                     size = 'ø{:.0f}'.format(size)
-#     else:
-#         size = 'Не определено'
-#     pFit.LookupParameter('ХТ Размер фитинга ОВ').Set(size)
-
-
-#     length = 0
-#     param = pFit.LookupParameter('Длина')
-#     if param:
-#         length = round(param.AsDouble() * 1.1, 2)
-#     pFit.LookupParameter('ХТ Длина ОВ').Set(length)
-
-
-# # for i, pos in enumerate(pFits):
-#     # pos.LookupParameter('ХТ Размер фитинга ОВ').Set(sizesOfFits[i])
-#     # pos.LookupParameter('ХТ Имя системы').Set(systemNamesOfFits[i])
-#     # pos.LookupParameter('ХТ Длина ОВ').Set(LenOfFits[i])
-
-
-
-# armsHolod = []
-# armsOther = []
-# for i in pArms:
-#     if i.LookupParameter('Имя системы').AsString():
-#         system = i.LookupParameter('Имя системы').AsString().split('/')[0]
-#         # if 'Х' in system:           # буква Ха, не Икс (он на меди)
-#         if 'Х' in system and 'Х1.' not in system and 'Х2.' not in system and 'Х3.' not in system and 'Х4.' not in system:  # Кириллическая Ха
-#             armsHolod.append(i)
-#         else:
-#             armsOther.append(i)
-
-# armsOtherSystemName = []
-# sizesOfArmsOther = []
-# for i in armsOther:
-#     systemName = i.LookupParameter('Имя системы').AsString().split('/')[0]
-#     armsOtherSystemName.append(systemName)
-#     name = doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_FAMILY_NAME_PARAM).AsString()
-#     if 'Клапан трехходовой с приводом' in name:
-#         sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'Насос циркуляционный' in name:
-#         sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif '_Манометры-ТМ-серии-10_ТМ-510' in name:
-#         sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'Кран трёхходовой для манометра' in name:
-#         sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif '_Термометр_БТ-32.211' in name:
-#         sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'ADSK_АвтоматическийВоздухоудалитель' in name:
-#         sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'Датчик температурыrfa' in name:
-#         sizesOfArmsOther.append(' ')
-#     elif 'Кран шаровой сливной' in name:
-#         sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     else:
-#         if 'T1 ' in systemName or 'T2 ' in systemName:  # Латинская t
-#             if systemName.split()[1] in systemOtherDict:
-#                 sizesOfArmsOther.append(systemOtherDict[systemName.split()[1]])
-#             else:
-#                 sizesOfArmsOther.append('Не определено')
-
-#         else:
-#             size = i.LookupParameter('Размер').AsString()
-#             size = size.split()[0].replace(',', '.')
-#             size = float(size)
-#             if size in pipesDict:
-#                 sizesOfArmsOther.append(pipesDict[size])
-#             else:
-#                 sizesOfArmsOther.append('ø{:.0f}'.format(size))
-
-
-# armsHolodSystemName = []
-# sizesOfArmsHolod = []
-# for i in armsHolod:
-#     systemName = i.LookupParameter('Имя системы').AsString().split('/')[0]
-#     armsHolodSystemName.append(systemName)
-#     name = doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_FAMILY_NAME_PARAM).AsString()
-#     if 'Клапан трехходовой с приводом' in name:
-#         sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'Насос циркуляционный' in name:
-#         sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif '_Манометры-ТМ-серии-10_ТМ-510' in name:
-#         sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'Кран трёхходовой для манометра' in name:
-#         sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif '_Термометр_БТ-32.211' in name:
-#         sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'ADSK_АвтоматическийВоздухоудалитель' in name:
-#         sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     elif 'Датчик температурыrfa' in name:
-#         sizesOfArmsHolod.append(' ')
-#     elif 'Кран шаровой сливной' in name:
-#         sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
-#     else:
-#         if 'Х1' == systemName or 'Х2' == systemName:  # Системы магистальных участков
-#             print(i.Id)
-#             if i.LookupParameter('Диаметр'):
-#                 size = i.LookupParameter('Диаметр').AsDouble() * k
-#             else:
-#                 size = i.LookupParameter('Условный диаметр').AsDouble() * k
-#             sizesOfArmsHolod.append('ø{:.0f}'.format(size))
-#         else:
-#             if systemName.split()[1] in systemDict:
-#                 sizesOfArmsHolod.append(systemDict[systemName.split()[1]])
-#             else:
-#                 sizesOfArmsHolod.append('Не определено')
-
-
-
-for el in list(pFits) + list(pArms):
-    sys_name = clean_sys_name(el.LookupParameter('Имя системы').AsString())
-    el.LookupParameter('ХТ Имя системы').Set(sys_name)
-
-    size = el.LookupParameter('Размер').AsString().replace(',', '.').split('-')
-    size_list = sorted([float(i) for i in set(size)], reverse=True)
-    done_sizes = []
-    for size in size_list:
-        if size in pipesDict:
-            size = pipesDict[size]
+systemNamesOther = []
+sizesOfPipesOther = []
+for i in pipesOther:
+    system = i.LookupParameter('Имя системы').AsString().split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
+    system = system.replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.')
+    systemNamesOther.append(system)
+    size = i.LookupParameter('Диаметр').AsDouble() * k
+    if 'T1 ' in system or 'T2 ' in system:  # Латинская t
+        if system.split()[1] in systemOtherDict:
+            sizesOfPipesOther.append(systemOtherDict[system.split()[1]])
         else:
-            size = 'ø{:.0f}'.format(size)
-        done_sizes.append(size)
-    komms = doc.GetElement(el.GetTypeId()).LookupParameter('Комментарии к типоразмеру').AsString()
-    komms = komms or ''
+            if 'T1 К' in system or 'T2 К' in system:
+                sizesOfPipesOther.append('Dу{:.0f}'.format(size))
+            else:
+                sizesOfPipesOther.append('Не определено')
+    elif size in pipesDict:
+        sizesOfPipesOther.append(pipesDict[size])
+    else:
+        sizesOfPipesOther.append('Dу{:.0f}'.format(size))
 
-    el.LookupParameter('ХТ Размер фитинга ОВ').Set('{} {}'.format(komms, '-'.join(done_sizes)))
+systemDict = {
+    '101': 'Dу40',
+    '102': 'Dу50',
+    '103': 'Dу50',
+    '106': 'Dу50',
+    '107': 'Dу50',
+    '107а': 'Dу40',
+    '108': 'Dу40'
+}
 
-    if el.LookupParameter('ХТ Длина ОВ'):
-        param = el.LookupParameter('Длина')
-        if param:
-            'Проверить единицы измерения параметра Длина, если это "Длина", а не "Число", то добавить тут коэффициент перевода единиц "k"'
-        length = round(param.AsDouble() * 1.1, 2) if param else 0
-        # print(el.Id)
-        el.LookupParameter('ХТ Длина ОВ').Set(length)
+systemNamesHolod = []
+sizesOfPipesHolod = []
+for i in pipesHolod:
+    systemName = i.LookupParameter('Имя системы').AsString().split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
+    systemName = systemName.replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.')
+    systemNamesHolod.append(systemName)
+    if 'Х1' == systemName or 'Х2' == systemName:  # Системы магистальных участков
+        size = i.LookupParameter('Диаметр').AsDouble() * k
+        sizesOfPipesHolod.append('Dу{:.0f}'.format(size))
+    else:
+        size = i.LookupParameter('Диаметр').AsDouble() * k
+        sizesOfPipesHolod.append('Dу{:.0f}'.format(size))
+#       if systemName.split()[1] in systemDict:
+#           sizesOfPipesHolod.append(systemDict[systemName.split()[1]])
+#       else:
+#           sizesOfPipesHolod.append('Не определено')
 
+
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+ # -------------------------------------- Фитинги и арматура труб -------------------------
+
+
+# sizesOfFits = []  # -------------------------------------- Фитинги и арматура труб -------------------------
+# systemNamesOfFits = []
+# LenOfFits = []
+for pFit in pFits:
+    systemName = 'Не определено'
+    originalSystemName = pFit.LookupParameter('Имя системы').AsString()
+    if originalSystemName:
+        systemName = originalSystemName.split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
+        systemName = systemName.replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.')
+    pFit.LookupParameter('ХТ Имя системы').Set(systemName)
+
+
+    # if 'T1 ' in systemName or 'T2 ' in systemName:  # Латинская t
+    #     if systemName.split()[1] in systemOtherDict:
+    #         sizesOfFits.append(systemOtherDict[systemName.split()[1]])
+    #     else:
+    #         sizesOfFits.append('Не определено0')
+    # elif 'Х1 ' in systemName or 'Х2 ' in systemName:
+    #     if systemName.split()[1] in systemDict:
+    #         sizesOfFits.append(systemDict[systemName.split()[1]])
+    #     else:
+    #         sizesOfFits.append('Не определено1')
+    if 'Не учитывать' not in originalSystemName:
+        size = pFit.LookupParameter('Размер').AsString()
+        # if doc.GetElement(pFit.GetTypeId()).LookupParameter('Описание').AsString() and 'ройник' in doc.GetElement(pFit.GetTypeId()).LookupParameter('Описание').AsString():
+        if 'ройник' in pFit.LookupParameter('Тип').AsValueString():
+            size = 'Dу' + size.replace(',00 мм', '')
+            # sizesOfFits.append(size)
+            way = 1
+        else:
+            # if size:
+                size = size.split()[0].replace(',', '.')
+                if '-' in size:
+                    arr = size.split('-')
+                    if len(arr) == 2:
+                        if arr[0] == arr[1]:
+                            size = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else 'Dу' + size
+                        else:
+                            part0 = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else arr[0]
+                            part1 = pipesDict[float(arr[1])] if float(arr[1]) in pipesDict else arr[1]
+                            size = '{} - {}'.format(part0, part1)
+                    elif len(arr) == 3:
+                            if arr[0] == arr[1] == arr[2]:
+                                size = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else 'Dу' + size
+                            else:
+                                part0 = pipesDict[float(arr[0])] if float(arr[0]) in pipesDict else arr[0]
+                                part1 = pipesDict[float(arr[1])] if float(arr[1]) in pipesDict else arr[1]
+                                part2 = pipesDict[float(arr[2])] if float(arr[2]) in pipesDict else arr[2]
+                                size = '{} - {} - {}'.format(part0, part1, part2)
+
+                    # try:
+                    #     size = '{}-{}'.format(pipesDict[size.split('-')[0]] + pipesDict[size.split('-')[1]])
+                    #     way = 2
+                    # except KeyError:
+                    #     way = 3
+                    #     if size.split('-')[0] == size.split('-')[1]:
+                    #         way = 4
+                    #         size = size.split('-')[0]
+                else:
+                    # raise Exception('Дописать тут')
+
+                    if size in pipesDict:
+                    #     way = 5
+                        size = pipesDict[size]
+                    else:
+                        size = float(size)
+                    #     way = 6
+                    size = 'Dу{:.0f}'.format(size)
+    else:
+        size = 'Не определено'
+    pFit.LookupParameter('ХТ Размер фитинга ОВ').Set(size)
+
+
+    length = 0
+    param = pFit.LookupParameter('Длина')
+    if param:
+        length = round(param.AsDouble() * 1.1, 2)
+    pFit.LookupParameter('ХТ Длина ОВ').Set(length)
+
+
+# for i, pos in enumerate(pFits):
+    # pos.LookupParameter('ХТ Размер фитинга ОВ').Set(sizesOfFits[i])
+    # pos.LookupParameter('ХТ Имя системы').Set(systemNamesOfFits[i])
+    # pos.LookupParameter('ХТ Длина ОВ').Set(LenOfFits[i])
+
+
+
+armsHolod = []
+armsOther = []
+for i in pArms:
+    if i.LookupParameter('Имя системы').AsString():
+        system = i.LookupParameter('Имя системы').AsString().split('/')[0]
+        # if 'Х' in system:           # буква Ха, не Икс (он на меди)
+        if 'Х' in system and 'Х1.' not in system and 'Х2.' not in system and 'Х3.' not in system and 'Х4.' not in system:  # Кириллическая Ха
+            armsHolod.append(i)
+        else:
+            armsOther.append(i)
+
+armsOtherSystemName = []
+sizesOfArmsOther = []
+for i in armsOther:
+    systemName = i.LookupParameter('Имя системы').AsString().split('/')[0]
+    armsOtherSystemName.append(systemName)
+    name = doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_FAMILY_NAME_PARAM).AsString()
+    if 'Клапан трехходовой с приводом' in name:
+        sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'Насос циркуляционный' in name:
+        sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif '_Манометры-ТМ-серии-10_ТМ-510' in name:
+        sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'Кран трёхходовой для манометра' in name:
+        sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif '_Термометр_БТ-32.211' in name:
+        sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'ADSK_АвтоматическийВоздухоудалитель' in name:
+        sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'Датчик температурыrfa' in name:
+        sizesOfArmsOther.append(' ')
+    elif 'Кран шаровой сливной' in name:
+        sizesOfArmsOther.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    else:
+        if 'T1 ' in systemName or 'T2 ' in systemName:  # Латинская t
+            if systemName.split()[1] in systemOtherDict:
+                sizesOfArmsOther.append(systemOtherDict[systemName.split()[1]])
+            else:
+                sizesOfArmsOther.append('Не определено')
+
+        else:
+            size = i.LookupParameter('Размер').AsString()
+            size = size.split()[0].replace(',', '.')
+            size = float(size)
+            if size in pipesDict:
+                sizesOfArmsOther.append(pipesDict[size])
+            else:
+                sizesOfArmsOther.append('Dу{:.0f}'.format(size))
+
+
+armsHolodSystemName = []
+sizesOfArmsHolod = []
+for i in armsHolod:
+    systemName = i.LookupParameter('Имя системы').AsString().split('/')[0]
+    armsHolodSystemName.append(systemName)
+    name = doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_FAMILY_NAME_PARAM).AsString()
+    if 'Клапан трехходовой с приводом' in name:
+        sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'Насос циркуляционный' in name:
+        sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif '_Манометры-ТМ-серии-10_ТМ-510' in name:
+        sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'Кран трёхходовой для манометра' in name:
+        sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif '_Термометр_БТ-32.211' in name:
+        sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'ADSK_АвтоматическийВоздухоудалитель' in name:
+        sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    elif 'Датчик температурыrfa' in name:
+        sizesOfArmsHolod.append(' ')
+    elif 'Кран шаровой сливной' in name:
+        sizesOfArmsHolod.append(doc.GetElement(i.GetTypeId()).get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString())
+    else:
+        if 'Х1' == systemName or 'Х2' == systemName:  # Системы магистальных участков
+            print(i.Id)
+            if i.LookupParameter('Диаметр'):
+                size = i.LookupParameter('Диаметр').AsDouble() * k
+            else:
+                size = i.LookupParameter('Условный диаметр').AsDouble() * k
+            sizesOfArmsHolod.append('Dу{:.0f}'.format(size))
+        else:
+            if systemName.split()[1] in systemDict:
+                sizesOfArmsHolod.append(systemDict[systemName.split()[1]])
+            else:
+                sizesOfArmsHolod.append('Не определено')
 
 # ---------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------
@@ -684,12 +657,9 @@ equipmentSystems = []
 for i in equipments:
     name = i.LookupParameter('Имя системы').AsString()
     if name:
-        # equipmentSystems.append(name.split('/')[0].split(',')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X').replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.'))
-        name = clean_sys_name(name)
-        equipmentSystems.append(name.split(',')[0])
+        equipmentSystems.append(name.split('/')[0].split(',')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X').replace('Х3.', 'Х.').replace('Х4.', 'Х.').replace('Хд.', 'Х.'))
     else:
         equipmentSystems.append('')
-
 
 for piping_system in piping_systems:
     name = piping_system.LookupParameter('Имя системы').AsString()
@@ -772,17 +742,6 @@ for i, pos in enumerate(equipments):
         pos.LookupParameter('ХТ Имя системы').Set('В1')
 
 
-for i in equipments:
-    if i.GetSubComponentIds():
-        # print('---------------')
-        # print(i.Id)
-        sys_name = i.LookupParameter('ХТ Имя системы').AsString() or ''
-        # print(sys_name)
-        sys_name = clean_sys_name(sys_name)
-        # print(sys_name)
-        for sub_el_id in i.GetSubComponentIds():
-            doc.GetElement(sub_el_id).LookupParameter('ХТ Имя системы').Set(sys_name)
-
 for i, pos in enumerate(terms):
     pos.LookupParameter('ХТ Размер фитинга ОВ').Set(sizesOfTerms[i])
 
@@ -830,12 +789,12 @@ for i in pipeInsuls:
     pipe = doc.GetElement(i.HostElementId)
     size = pipe.LookupParameter('ХТ Размер фитинга ОВ').AsString()
     if size.find('" (') == -1:
-        size = float(size.replace('ø', '').replace(',', '.'))
+        size = float(size.replace('Dу', '').replace(',', '.'))
     else:
-        # print('--------------')
-        # print(size)
-        # print(size.find('('))
-        # print(size[size.find('(') + 1:])
+        print('--------------')
+        print(size)
+        print(size.find('('))
+        print(size[size.find('(') + 1:])
         try:
             size = float(size[size.find('(') + 1:].replace(',', '.').replace(' mm)', ''))
         except ValueError:
@@ -864,20 +823,7 @@ for i in pipeInsuls:
     pipeInsulsSizes.append(insuls_)
     pipeInsulsLens.append(i.LookupParameter('Длина').AsDouble() * 1.1)
 
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
-###################################### Фейки #####     ######     ######     ######     ######     ######
+###################################### Фейки ######################################
 
 fakesForBrackets = []
 fakesForArea = []
@@ -900,9 +846,9 @@ for i in pipes:
     if i.LookupParameter('Имя системы').AsString():
         system = i.LookupParameter('Имя системы').AsString().split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
         size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-        type_ = (system, size)
-        if type_ not in uniqueSystemAndSize:  # Латинская буква Икс - фреоновые медные трубы
-            uniqueSystemAndSize.append(type_)
+        type = (system, size)
+        if type not in uniqueSystemAndSize:  # Латинская буква Икс - фреоновые медные трубы
+            uniqueSystemAndSize.append(type)
         if system not in uniqueSystems and 'X' not in system and 'ПУ' not in system:
             uniqueSystems.append(system)
 
@@ -929,22 +875,21 @@ outerDiameterDict = {
     150: 150 + 2 * 4.5
 }
 
-warning = False
 for i in pipes:
     if i.LookupParameter('Имя системы').AsString():
         system = i.LookupParameter('Имя системы').AsString().split('/')[0].replace('обр', '').replace('под', '').replace('Xо ', 'X').replace('Xп ', 'X').replace('Xд ', 'X')
     else:
         system = '-'
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-    type_ = (system, size)
-    if type_ in uniqueSystemAndSize:
+    type = (system, size)
+    if type in uniqueSystemAndSize:
         l = i.LookupParameter('ХТ Длина ОВ').AsDouble() * k
-        uniqueSystemAndSizeLens[uniqueSystemAndSize.index(type_)] += l
+        uniqueSystemAndSizeLens[uniqueSystemAndSize.index(type)] += l
     if system in uniqueSystems:
         l = i.LookupParameter('ХТ Длина ОВ').AsDouble() * k
         d = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
         try:
-            d = float(d.replace('ø', ''))
+            d = float(d.replace('Dу', ''))
         except ValueError:
             pass
         if d in outerDiameterDict:
@@ -952,11 +897,7 @@ for i in pipes:
             uniqueSystemsAreas[uniqueSystems.index(system)] += area
         else:
             # raise Exception('outerDiameterDict is not full, require add more position | ' + str(d))
-            # print('outerDiameterDict is not full, require add more position | ' + str(d))
-            warning = True
-if warning:
-    print('При расчёте фейков возникла ошибка (Не рассчитаны Кронштейны, краски, грунтовки, испытания)')
-
+            print('outerDiameterDict is not full, require add more position | ' + str(d))
 
 fakesForBracketsAmount = [math.ceil(i / 2000) * 1000 for i in uniqueSystemAndSizeLens]
 fakesForBracketsSystems = [i for (i, j) in uniqueSystemAndSize]
@@ -975,10 +916,10 @@ for i in ducts:
     sys_name = sys_name if sys_name else 'Не определено'
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-    type_ = (system, size)
-    if type_ not in uniqueSystemAndSizeDucts:  # Латинская буква Икс - фреоновые медные трубы
+    type = (system, size)
+    if type not in uniqueSystemAndSizeDucts:  # Латинская буква Икс - фреоновые медные трубы
         uniqueSystemAndSizeDuctsElements.append(i)
-        uniqueSystemAndSizeDucts.append(type_)
+        uniqueSystemAndSizeDucts.append(type)
 
 uniqueSystemAndSizeDuctsAreas = [0 for i in range(len(uniqueSystemAndSizeDucts))]
 for i in ducts:
@@ -986,10 +927,10 @@ for i in ducts:
     sys_name = sys_name if sys_name else 'Не определено'
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-    type_ = (system, size)
-    if type_ in uniqueSystemAndSizeDucts:
+    type = (system, size)
+    if type in uniqueSystemAndSizeDucts:
         a = i.LookupParameter('Площадь').AsDouble() / kkk * k / 1000 * 1.1
-        uniqueSystemAndSizeDuctsAreas[uniqueSystemAndSizeDucts.index(type_)] += a
+        uniqueSystemAndSizeDuctsAreas[uniqueSystemAndSizeDucts.index(type)] += a
 
 uniqueSystemAndSizeDuctsAreasForEach = []
 for i in ducts:
@@ -997,8 +938,8 @@ for i in ducts:
     sys_name = sys_name if sys_name else 'Не определено'
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-    type_ = (system, size)
-    uniqueSystemAndSizeDuctsAreasForEach.append(uniqueSystemAndSizeDuctsAreas[uniqueSystemAndSizeDucts.index(type_)])
+    type = (system, size)
+    uniqueSystemAndSizeDuctsAreasForEach.append(uniqueSystemAndSizeDuctsAreas[uniqueSystemAndSizeDucts.index(type)])
 
 ########################################
 uniqueSystemAndSizeFlexes = []
@@ -1007,9 +948,9 @@ for i in flexes:
     sys_name = sys_name if sys_name else 'Не определено'
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-    type_ = (system, size)
-    if type_ not in uniqueSystemAndSizeDucts:  # Латинская буква Икс - фреоновые медные трубы
-        uniqueSystemAndSizeFlexes.append(type_)
+    type = (system, size)
+    if type not in uniqueSystemAndSizeDucts:  # Латинская буква Икс - фреоновые медные трубы
+        uniqueSystemAndSizeFlexes.append(type)
 
 uniqueSystemAndSizeFlexesAreas = [0 for i in range(len(uniqueSystemAndSizeFlexes))]
 for i in flexes:
@@ -1017,10 +958,10 @@ for i in flexes:
     sys_name = sys_name if sys_name else 'Не определено'
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-    type_ = (system, size)
-    if type_ in uniqueSystemAndSizeFlexes:
+    type = (system, size)
+    if type in uniqueSystemAndSizeFlexes:
         a = i.LookupParameter('Длина').AsDouble() * 1.1 * 3.14 * i.LookupParameter('Диаметр').AsDouble() / kk
-        uniqueSystemAndSizeFlexesAreas[uniqueSystemAndSizeFlexes.index(type_)] += a
+        uniqueSystemAndSizeFlexesAreas[uniqueSystemAndSizeFlexes.index(type)] += a
 
 uniqueSystemAndSizeFlexesAreasForEach = []
 for i in flexes:
@@ -1028,8 +969,8 @@ for i in flexes:
     sys_name = sys_name if sys_name else 'Не определено'
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
-    type_ = (system, size)
-    uniqueSystemAndSizeFlexesAreasForEach.append(uniqueSystemAndSizeFlexesAreas[uniqueSystemAndSizeFlexes.index(type_)])
+    type = (system, size)
+    uniqueSystemAndSizeFlexesAreasForEach.append(uniqueSystemAndSizeFlexesAreas[uniqueSystemAndSizeFlexes.index(type)])
 
 ########################################
 uniqueSystemAndSizeDFits = []
@@ -1039,9 +980,9 @@ for i in dFits:
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
     naim = doc.GetElement(i.GetTypeId()).LookupParameter('Описание').AsString()
-    type_ = (system, size, naim)
-    if type_ not in uniqueSystemAndSizeDFits:  # Латинская буква Икс - фреоновые медные трубы
-        uniqueSystemAndSizeDFits.append(type_)
+    type = (system, size, naim)
+    if type not in uniqueSystemAndSizeDFits:  # Латинская буква Икс - фреоновые медные трубы
+        uniqueSystemAndSizeDFits.append(type)
 
 uniqueSystemAndSizeDFitsAreas = [0 for i in range(len(uniqueSystemAndSizeDFits))]
 for i in dFits:
@@ -1050,13 +991,13 @@ for i in dFits:
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
     naim = doc.GetElement(i.GetTypeId()).LookupParameter('Описание').AsString()
-    type_ = (system, size, naim)
-    if type_ in uniqueSystemAndSizeDFits:
+    type = (system, size, naim)
+    if type in uniqueSystemAndSizeDFits:
         if i.LookupParameter('ХТ Площадь'):
             a = i.LookupParameter('ХТ Площадь').AsDouble() / kk
         else:
             a = 0.0
-        uniqueSystemAndSizeDFitsAreas[uniqueSystemAndSizeDFits.index(type_)] += a
+        uniqueSystemAndSizeDFitsAreas[uniqueSystemAndSizeDFits.index(type)] += a
 
 uniqueSystemAndSizeDFitsAreasForEach = []
 for i in dFits:
@@ -1065,8 +1006,8 @@ for i in dFits:
     system = sys_name.split('/')[0]
     size = i.LookupParameter('ХТ Размер фитинга ОВ').AsString()
     naim = doc.GetElement(i.GetTypeId()).LookupParameter('Описание').AsString()
-    type_ = (system, size, naim)
-    uniqueSystemAndSizeDFitsAreasForEach.append(uniqueSystemAndSizeDFitsAreas[uniqueSystemAndSizeDFits.index(type_)])
+    type = (system, size, naim)
+    uniqueSystemAndSizeDFitsAreasForEach.append(uniqueSystemAndSizeDFitsAreas[uniqueSystemAndSizeDFits.index(type)])
 
 
 if len(fakesForBrackets) != len(uniqueSystemAndSize) or \
@@ -1248,9 +1189,8 @@ if errors:
     print('Следует прописать стоимость для сортировки и подсчёта количества:\n{}'.format(' '.join([errors[k] for k in errors])))
 
 for i in all:
-    if i.LookupParameter('ХТ Имя системы отступ'):
-        if i.LookupParameter('ХТ Имя системы').AsString():
-            i.LookupParameter('ХТ Имя системы отступ').Set('‎' + ' ' * 90 + i.LookupParameter('ХТ Имя системы').AsString())
+    if i.LookupParameter('ХТ Имя системы').AsString():
+        i.LookupParameter('ХТ Имя системы отступ').Set('‎' + ' ' * 90 + i.LookupParameter('ХТ Имя системы').AsString())
 
 OUT = ['{} {} Фейк для кронштейнов'.format(len(fakesForBrackets), len(uniqueSystemAndSize)),
 '{} {} Фейк для площади'.format(len(fakesForArea), len(uniqueSystems)),

@@ -25,22 +25,33 @@ for el in els:
     dimL = el.LookupParameter('Фактическая длина').AsDouble() * k
     dimB = el.LookupParameter('ADSK_Размер_Высота').AsDouble() * k
     dimH = el.LookupParameter('ADSK_Размер_Ширина').AsDouble() * k
-    name = ' {:.0f}×{:.0f}'.format(min([dimB, dimH]), max([dimB, dimH]))
-    if el.LookupParameter('Семейство').AsValueString() == 'Плита':
+    name = '{:.0f}×{:.0f}'.format(min([dimB, dimH]), max([dimB, dimH]))
+    mark = name
+    is_plita = el.LookupParameter('Семейство').AsValueString() == 'Плита'
+    if is_plita:
         dimL = doc.GetElement(el.GetTypeId()).LookupParameter('h').AsDouble() * k
-        name = ' {:.0f}×{:.0f}'.format(max([dimB, dimH]), min([dimB, dimH]))
+        dimB = el.LookupParameter('Ширина').AsDouble() * k
+        dimH = el.LookupParameter('Фактическая длина').AsDouble() * k
+        # name = ' {:.0f}×{:.0f}'.format(max([dimB, dimH]), min([dimB, dimH]))
+        name = '{:.0f}'.format(dimL)
+        mark = '{:.0f}×{:.0f}'.format(max([dimB, dimH]), min([dimB, dimH]))
     el.LookupParameter('ADSK_Размер_Длина').Set(dimL / k)
     el.LookupParameter('ADSK_Марка').Set(name)
     if dimB >= 100 and dimH >= 100:
-        name = 'Брус'
+        name, addition, addition2 = 'Брус', ' клееный из шпона (ЛВЛ)', ' ЛВЛ'
     else:
-        name = 'Брусок' if dimB == dimH else 'Доска'
-    name += ' клееный из шпона (ЛВЛ)' if 'Кле' in el.LookupParameter('Тип').AsValueString() else ''
-    if el.LookupParameter('Семейство').AsValueString() == 'Плита':
+        name, addition, addition2 = ('Брусок', ' клееный из шпона (ЛВЛ)', ' ЛВЛ') if dimB == dimH else ('Доска', ' клееная из шпона (ЛВЛ)', ' ЛВЛ')
+    is_glued = 'Кле' in el.LookupParameter('Тип').AsValueString()
+    el.LookupParameter('Марка для поэлементной').Set(mark + (addition2 if is_glued else ''))
+    name += addition if is_glued else ''
+    if is_plita:
         name = 'Плита типа ОСП-3, шлифованная, класса эмиссии Е1'
     doc.GetElement(el.GetTypeId()).LookupParameter('Описание').Set(name)
-    zapas = 1.0 if 'Кле' in el.LookupParameter('Тип').AsValueString() else 1.1
-    el.LookupParameter('ADSK_Количество').Set(dimL * dimB * dimH / 10**9 * zapas)
+    zapas = 1.0 if is_glued else 1.1
+    value = dimL * dimB * dimH / 10**9 * zapas
+    if is_plita:
+        value = dimB * dimH / 10**6 * zapas
+    el.LookupParameter('ADSK_Количество').Set(value)
 
     None if el.LookupParameter('Этап').HasValue else el.LookupParameter('Этап').Set(999)
 
@@ -67,7 +78,11 @@ for el in els:
     if 'Не СЭ' in el.LookupParameter('Тип').AsValueString():
         continue
     newpart = el.LookupParameter('Этап').AsDouble()
-    newname = el.LookupParameter('ADSK_Марка').AsString()
+    # newname = el.LookupParameter('ADSK_Марка').AsString()
+    newname = el.LookupParameter('Марка для поэлементной').AsString()
+    # is_plita = el.LookupParameter('Семейство').AsValueString() == 'Плита'
+    # if is_plita:
+    #     newname = el.LookupParameter('Марка для поэлементной').AsString()
     newlength = round(el.LookupParameter('Фактическая длина').AsDouble() * k, 0)
     if part != newpart or name != newname or length != newlength:
         if (newname, newlength) not in done:
@@ -87,6 +102,9 @@ els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructConnect
 windows = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Windows).WhereElementIsNotElementType().ToElements())
 doors = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Doors).WhereElementIsNotElementType().ToElements())
 
+for el in windows + doors:
+    el.LookupParameter('Марка для поэлементной').Set('Не учитывать')
+
 for el in els:
     None if el.LookupParameter('Этап').HasValue else el.LookupParameter('Этап').Set(999)
     el.LookupParameter('ADSK_Количество').Set(1)
@@ -95,6 +113,7 @@ walls = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Walls)
 floors = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Floors).WhereElementIsNotElementType().ToElements())
 roofs = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Roofs).WhereElementIsNotElementType().ToElements())
 fascias = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Fascia).WhereElementIsNotElementType().ToElements())
+generic = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_GenericModel).WhereElementIsNotElementType().ToElements())
 struct_connection_types = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructConnections).WhereElementIsElementType().ToElements()
 for symbol in [i for i in struct_connection_types if 'Фейк' in i.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()]:
     None if 'Основа' in symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() else doc.Delete(symbol.Id)
@@ -104,17 +123,23 @@ fake_original_symbol = [i for i in struct_connection_types if 'Фейк' in i.ge
 location = XYZ(0, 0, 0)
 fake_symbols = {}
 level = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Levels).WhereElementIsNotElementType().ToElements()[0]
-for exist_el in walls + floors + roofs + fascias:
+for exist_el in walls + floors + roofs + fascias + generic:
     None if exist_el.LookupParameter('Этап').HasValue else exist_el.LookupParameter('Этап').Set(999)
 
     exist_symbol = doc.GetElement(exist_el.GetTypeId())
     description = exist_symbol.LookupParameter('Описание').AsString()
+    if 'е учит' in description:
+        continue
     description = description if description else exist_symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()
-    for description in description.split('//'):
+    if 'Формула' in description:
+        description = exist_symbol.LookupParameter('Формула').AsString().replace('\r', '')
+        exist_symbol.LookupParameter('Формула строкой').Set(description.replace('\n', ' // '))
+    values = []
+    for description in description.split('\n'):
         if description not in fake_symbols:
             new_fake = fake_original_symbol.Duplicate('Фейк_ ' + description)
             fake_symbols[description] = new_fake
-            new_fake.LookupParameter('Описание').Set(description.split('((')[0])
+            new_fake.LookupParameter('Описание').Set(description.split('((')[0].split('%')[0])
             key_note = exist_symbol.LookupParameter('Ключевая пометка').AsString()
             if not key_note:
                 print('{} - Не указано значение параметра Ключевая пометка (единица измерения). Назначено значение поумолчанию "м³"'.format(output.linkify(exist_el.Id, description)))
@@ -132,7 +157,16 @@ for exist_el in walls + floors + roofs + fascias:
         key_note = key_note if key_note else 'м³'
         coefficient = 1.1
         if '((' in description:
-            coefficient = float(description.split('((')[-1].split('))')[0].replace(',', '.'))
+            # coefficient = float(description.split('((')[-1].split('))')[0].replace(',', '.'))
+            coefficient = eval(description.split('((')[-1].split('))')[0].replace(',', '.'))
+            if not coefficient:
+                raise Exception('Вероятно, забыта десятичная точка в формуле')
+            # print(description.split('((')[-1].split('))')[0].replace(',', '.'))
+            # print(coefficient)
+        marka = ''
+        if '%' in description:
+            marka = description.split('%')[1]
+        fake_el.LookupParameter('ADSK_Марка').Set(marka)
         if key_note == 'м³':
             value = exist_el.LookupParameter('Объем').AsDouble() / k1 * coefficient
         elif key_note == 'м²':
@@ -140,8 +174,10 @@ for exist_el in walls + floors + roofs + fascias:
         elif key_note == 'м':
             value = exist_el.LookupParameter('Длина').AsDouble() * k * coefficient / 1000
         fake_el.LookupParameter('ADSK_Количество').Set(value)
+        values.append('{} {}: {:.3f}'.format(new_fake.LookupParameter('Описание').AsString(), marka, value))
         # fake_el.LookupParameter('Наименование СМ').Set(description.split('((')[0])
         fake_el.LookupParameter('Комментарии').Set(str(exist_el.Id))
         fake_el.LookupParameter('Этап').Set(exist_el.LookupParameter('Этап').AsDouble())
+    exist_el.LookupParameter('Наименование СМ').Set('\n'.join(values))
 
 t.Commit()

@@ -35,30 +35,43 @@ with forms.ProgressBar() as pb:
     default = 2000
     dict_ = {
        # КабельСигнальный                                        0 Наименование и техническая…              1 Тип, марка…                       2 Запас на разделку 3 Изготовитель
-        'FTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'FTP 4x2x0,52 cat 5e',              default,            'Россия'],  # noqa
-        'FTP 5e':                                               ['Кабель парной скрутки',                   'FTP 2x2x0,52 cat 5e',              default,            'Россия'],  # noqa
-        'RG174':                                                ['Кабель коаксильный',                      'RG174',                            default,            'Россия'],  # noqa
-        'RG-174':                                               ['Кабель коаксильный',                      'RG174',                            default,            'Россия'],  # noqa
-        'RG-6U (75 Ом)':                                        ['Кабель коаксильный',                      'RG-6U (75 Ом)',                    default,            'Россия'],  # noqa
-        'SAT 703 B':                                            ['Кабель коаксильный',                      'SAT 703 B',                        default,            'Россия'],  # noqa
-        'UTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 5e',              default,            'Россия'],  # noqa
-        'UTP 4x2x0,52 cat 6a':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6a',              default,            'Россия'],  # noqa
-        'UTP 4x2x0,52 cat 6e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6e',              default,            'Россия'],  # noqa
-        'Акустический кабель Audiocore Primary Wire M ACS0102': ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default,            'Россия'],  # noqa
-        'ACS0102':                                              ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default,            'Россия'],  # noqa
-        'ВВГнг(А) 3х0,75':                                      ['Кабель силовой',                          'ВВГнг(А) 3х0,75',                  default,            'Россия'],  # noqa
-        'ВВГнг(А)-LS 3x1,5':                                    ['Кабель силовой',                          'ВВГнг(А)-LS 3x1,5',                default,            'Россия'],  # noqa
-        'КВВГЭ 10х0,75':                                        ['Кабель',                                  'КВВГЭ 10х0,75',                    default,            'Россия'],  # noqa
-        'ШВВП 2х0,75':                                          ['Кабель силовой',                          'ШВВП 2х0,75',                      default,            'Россия'],  # noqa
-        '20 жильный управляющий кабель':                        ['Кабель (Уточнить)',                       '20 жил (Условно)',                 default,            'Россия'],  # noqa
-        '3xRCA':                                                ['Кабель передачи аудио-видеосигналов',     '3xRCA',                            default,            'Россия'],  # noqa
-        'HDMI(не включать)':                                    ['Кабель мультимедийный высокоскоростной',  'HDMI(не включать)',                200    ,            'Россия'],  # noqa
-        'HDMI':                                                 ['Кабель мультимедийный высокоскоростной',  'HDMI',                             200    ,            'Россия'],  # noqa
-        'USB 2.0(не включать)':                                 ['Кабель',                                  'USB 2.0(не включать)',             100    ,            'Россия'],  # noqa
-        'USB 2.0':                                              ['Кабель',                                  'USB 2.0',                          100    ,            'Россия'],  # noqa
-        'VGA':                                                  ['Кабель видеоинтерфейсный',                'VGA',                              100    ,            'Россия'],  # noqa
-        '2×Alarm':                                              ['Кабель специальный',                      '2×Alarm',                          0      ,            'Россия'],  # noqa
-        '4×Alarm':                                              ['Кабель специальный',                      '4×Alarm',                          0      ,            'Россия'],  # noqa
+        'FTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'FTP 4x2x0,52 cat 5e',              default,            'Россия'                                ],  # noqa
+        'FTP 5e':                                               ['Кабель парной скрутки',                   'FTP 2x2x0,52 cat 5e',              default,            'Россия'                                ],  # noqa
+        'RG174':                                                ['Кабель коаксильный',                      'RG174',                            default,            'Россия'                                ],  # noqa
+        'RG-174':                                               ['Кабель коаксильный',                      'RG174',                            default,            'Россия'                                ],  # noqa
+        'RG-6U (75 Ом)':                                        ['Кабель коаксильный',                      'RG-6U (75 Ом)',                    default,            'Россия'                                ],  # noqa
+        'SAT 703 B':                                            ['Кабель коаксильный',                      'SAT 703 B',                        default,            'Россия'                                ],  # noqa
+        'UTP 4x2x0,52 cat 5e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 5e',              default,            'Россия'                                ],  # noqa
+        'UTP 4x2x0,52 cat 6a':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6',               default,            'Россия'                                ],  # noqa
+        'UTP 4x2x0,52 cat 6e':                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6',               default,            'Россия'                                ],  # noqa
+        'UTP 4x2x0,52 cat 6':                                   ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6',               default,            'Россия'                                ],  # noqa
+        'Акустический кабель Audiocore Primary Wire M ACS0102': ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default,            'Россия'                                ],  # noqa
+        'ACS0102':                                              ['Кабель акустический',                     'Audiocore Primary Wire M ACS0102', default,            'Россия'                                ],  # noqa
+        'ВВГнг(А) 3х0,75':                                      ['Кабель силовой',                          'ВВГнг(А) 3х0,75',                  default,            'Россия'                                ],  # noqa
+        'ВВГнг(А)-LS 3x1,5':                                    ['Кабель силовой',                          'ВВГнг(А)-LS 3x1,5',                default,            'Россия'                                ],  # noqa
+        'КВВГЭ 10х0,75':                                        ['Кабель',                                  'КВВГЭ 10х0,75',                    default,            'Россия'                                ],  # noqa
+        'ШВВП 2х0,75':                                          ['Кабель силовой',                          'КПСнг(А)-FRLS 1x2x0,75',           default,            'Россия'                                ],  # noqa
+        'КПС':                                                  ['Кабель силовой',                          'КПСнг(А)-FRLS 1x2x0,75',           default,            'Россия'                                ],  # noqa
+        '20 жильный управляющий кабель':                        ['Кабель (Уточнить)',                       '20 жил (Условно)',                 default,            'Россия'                                ],  # noqa
+        '3xRCA':                                                ['Кабель передачи аудио-видеосигналов',     '3xRCA',                            default,            'Россия'                                ],  # noqa
+        'HDMI(не включать)':                                    ['Кабель мультимедийный высокоскоростной',  'HDMI(не включать)',                200    ,            'Россия'                                ],  # noqa
+        'HDMI':                                                 ['Кабель мультимедийный высокоскоростной',  'HDMI',                             200    ,            'Россия'                                ],  # noqa
+        'USB 2.0(не включать)':                                 ['Кабель',                                  'USB 2.0(не включать)',             100    ,            'Россия'                                ],  # noqa
+        'USB 2.0':                                              ['Кабель',                                  'USB 2.0',                          100    ,            'Россия'                                ],  # noqa
+        'VGA':                                                  ['Кабель видеоинтерфейсный',                'VGA',                              100    ,            'Россия'                                ],  # noqa
+        '2×Alarm':                                              ['Кабель специальный',                      '2×Alarm',                          0      ,            'Россия'                                ],  # noqa
+        '4×Alarm':                                              ['Кабель специальный',                      '4×Alarm',                          0      ,            'Россия'                                ],  # noqa
+        '---':                                                  ['------------------',                      '-------------',                    1000   ,            '------'                                ],  # noqa
+        'sdi':                                                  ['Кабель коаксильный',                      'RG-6U (75 Ом)',                    1000   ,            'Россия'                                ],  # noqa
+        'utp':                                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6',               1000   ,            'Россия'                                ],  # noqa
+        'ftp':                                                  ['Кабель парной скрутки',                   'FTP 4x2x0,52 cat 6',               1000   ,            'Россия'                                ],  # noqa
+        'hdmi':                                                 ['Кабель мультимедийный высокоскоростной',  'HDMI',                             200    ,            'Россия'                                ],  # noqa
+        'vga':                                                  ['Кабель видеоинтерфейсный',                'VGA',                              100    ,            'Россия'                                ],  # noqa
+        'pwr':                                                  ['Кабель парной скрутки',                   'КПСнг(А)-FRLS 1x2x0,75',           1000   ,            'Россия'                                ],  # noqa
+        'audio':                                                ['Кабель акустический',                     'Primary Wire M ACS0102',           1000   ,            'Audiocore'                             ],  # noqa
+        'usb':                                                  ['Кабель',                                  'USB 2.0',                          100    ,            'Россия'                                ],  # noqa
+        '4alarm':                                               ['Кабель специальный',                      '4×Alarm',                          0      ,            'ООО "Медицинские системы визуализации"'],  # noqa
+        '2alarm':                                               ['Кабель специальный',                      '2×Alarm',                          0      ,            'ООО "Медицинские системы визуализации"'],  # noqa
     }
 
     els = FilteredElementCollector(doc).OfCategory(
@@ -244,12 +257,12 @@ with forms.ProgressBar() as pb:
 
     coefficient_for_piece = 1.05
     coefficient_for_lenght = 1.5
-    piece_names_list = ['HDMI', 'HDMI(не включать)', 'USB 2.0(не включать)', 'VGA']
+    piece_names_list = ['HDMI', 'HDMI(не включать)', 'USB 2.0(не включать)', 'VGA', 'hdmi', 'usb', 'vga']
     piece_lenght_list = [1, 2, 3, 5, 20]
 
     for cir in Cir.objects:
         wire_name = get_wire_name(cir)
-        cir.origin.LookupParameter('КабельЦепи').Set(wire_name)
+        # cir.origin.LookupParameter('КабельЦепи').Set(wire_name)
 
         name = dict_[wire_name][0] if wire_name in dict_ else 'Ошибка, добавь в скрипт ' + wire_name
         cir.origin.LookupParameter('Наименование').Set(name)
@@ -282,6 +295,7 @@ with forms.ProgressBar() as pb:
                 lenght = ceil(cir.origin.Length * k * coefficient_for_lenght + reserve / 1000)
         cir.origin.LookupParameter('Длина с запасом').Set(ceil(lenght / 1000) * 1000 / k)
         cir.origin.LookupParameter('Тип, марка').Set(mark)
+        cir.origin.LookupParameter('КабельЦепи').Set(mark)
         cir.origin.LookupParameter('Способ расчёта').Set(calc_method)
         cir.origin.LookupParameter('Количество').Set(1 if calc_method else ceil(lenght / 1000))
         cir.origin.LookupParameter('Единицы измерения').Set('шт.' if calc_method else 'м')
@@ -317,7 +331,12 @@ with forms.ProgressBar() as pb:
             symbol.LookupParameter('Ключевая пометка').Set(cir.origin.LookupParameter('Единицы измерения').AsString())
             symbol.LookupParameter('Стоимость').Set(200)
             # wire = doc.GetElement(cir.els[0].GetTypeId()).LookupParameter('КабельСигнальный').AsString()
-            symbol.LookupParameter('Изготовитель').Set(dict_[get_wire_name(cir)][3])
+            wire_name = get_wire_name(cir)
+            # symbol.LookupParameter('Изготовитель').Set(dict_[wire_name][3])
+            # symbol.LookupParameter('Изготовитель').Set(dict_[wire_name][3] if wire_name in dict_ else 'Ошибка, добавь в скрипт ' + wire_name)
+            # print(wire_name)
+            # print(type(wire_name))
+            symbol.LookupParameter('Изготовитель').Set(dict_.get(wire_name, [0, 1, 2, 'Ошибка, добавь в скрипт '])[3])
         else:
             symbol = [i for i in symbols if i.LookupParameter('Комментарии к типоразмеру').AsString() == mark][0]
         el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)

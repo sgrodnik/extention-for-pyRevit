@@ -4,6 +4,8 @@ __title__ = 'Test'
 __author__ = 'SG'
 
 import clr
+import re
+
 clr.AddReference('System.Core')
 from System.Collections.Generic import *
 from Autodesk.Revit.DB import SectionType, ElementId, PartUtils, ViewOrientation3D, XYZ, FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup, BuiltInParameter, Line, Structure, ParameterFilterElement, ParameterFilterRuleFactory, ElementParameterFilter, ViewDuplicateOption
@@ -15,24 +17,158 @@ uidoc = __revit__.ActiveUIDocument
 app = __revit__.Application
 k = 304.8
 
+def natural_sorted(list, key=lambda s: s):
+    """
+    Sort the list into natural alphanumeric order.
+    """
+    def get_alphanum_key_func(key):
+        convert = lambda text: int(text) if text.isdigit() else text  # noqa
+        return lambda s: [convert(c) for c in re.split('([0-9]+)', key(s))]
+    sort_key = get_alphanum_key_func(key)
+    return sorted(list, key=sort_key)
 
 from pyrevit import script
 output = script.get_output()
 
 t = Transaction(doc, 'Test')
 t.Start()
-els = FilteredElementCollector(doc).WhereElementIsElementType().ToElements()
-for el in els:
-    if el.LookupParameter('Изготовитель'):
-        if el.LookupParameter('Изготовитель').HasValue:
-            old = el.LookupParameter('Изготовитель').AsString() == 'Лиссант'
-            if old:
-                el.LookupParameter('Изготовитель').Set('Россия')
-                print('{} {}'.format(old, el.LookupParameter('Имя типа').AsString()))
+
+elects = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsNotElementType().ToElements()
+anns = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_GenericAnnotation).WhereElementIsNotElementType().ToElements()
+anns = [i for i in anns if i.LookupParameter('Семейство').AsValueString() == 'Элемент схемы']
+dict_ann = {}
+for el in anns:
+	symbol = doc.GetElement(el.GetTypeId())
+	position = symbol.LookupParameter('ADSK_Позиция').AsString()
+	# print(position)
+	if position not in dict_ann:
+		dict_ann[position] = []
+	dict_ann[position].append(el)
+# print(dict_ann)
+
+data = []
+for position in natural_sorted(dict_ann):
+	datum = []
+	els = dict_ann[position]
+	datum.append(position)
+	# for i in els:
+	# 	print(i.Id)
+	# 	print(i.LookupParameter('ADSK_Наименование'))
+	# datum.append('; '.join(set([doc.GetElement(i.GetTypeId()).LookupParameter('ADSK_Наименование').AsString() for i in els])))
+	datum.append(len(els))
+	data.append(datum)
+
+# print(data)
+
+# data.append(['---', '---', '---', '---', '---', len([i for i in data if i[5] != ''])])
+
+columns = ['Id фильтра', 'Имя фильтра', 'Категории', 'Логика', 'Правила', 'Статус']
+
+output = script.get_output()
+output.print_table(table_data=data, columns=columns)
+
 t.Commit()
 
 
+
+# src = [(1824740, ''), (1824920, ''), (1824922, ''), (1824924, ''), (1824926, ''), (1824928, ''), (1824930, ''), (1824932, ''), (1824934, ''), (1826765, ''), (1836540, ''), (1836542, ''), (1836544, ''), (1836546, ''), (1836548, ''), (1836550, ''), (1836552, ''), (1836554, ''), (2475322, 'utp/utp'), (2604386, 'sdi'), (2700046, ''), (2700048, ''), (2700050, ''), (2700052, ''), (2700054, ''), (2806834, 'hdmi'), (2807028, 'vga'), (2948151, 'utp/utp'), (2948153, 'hdmi'), (2948155, 'utp'), (2948157, 'hdmi((2))/usb/pwr/pwr'), (2948159, 'utp'), (2948161, 'utp/utp'), (2953615, 'hdmi((2))/usb'), (2957709, 'utp'), (2957711, 'pwr'), (2957713, 'pwr'), (2957715, 'ftp'), (2957717, 'pwr'), (2957719, 'pwr'), (2957721, 'audio'), (2963054, 'pwr'), (2963056, 'pwr'), (2966584, 'utp/sdi'), (2966586, 'utp/sdi'), (2981279, ''), (2981280, ''), (2981281, ''), (2981282, ''), (2981283, ''), (2981284, ''), (2981285, ''), (2981286, ''), (2981287, ''), (2981365, 'utp((50))'), (3005435, 'pwr/pwr'), (3005863, '((50))utp/ftp/pwr'), (3006081, 'utp'), (3027840, 'hdmi'), (3027842, 'usb'), (3027844, 'utp'), (3027846, 'sdi'), (3027848, 'sdi'), (3027850, 'hdmi'), (3027852, 'sdi'), (3031538, 'hdmi/vga/sdi/sdi/4alarm'), (3031939, 'sdi'), (3033219, 'sdi'), (3034576, 'hdmi'), (3034725, 'vga'), (3090131, 'utp'), (3090201, 'audio'), (3090203, 'audio'), (3097521, 'Внимание! Если написать сюда 64 раза sdi, то Ревиту станет плохо. Надо что-то думать'), (3097523, 'sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi'), (3097525, 'sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi/sdi'), (3106722, 'utp/audio/hdmi'), (3106724, 'SDI/SDI/SDI/SDI/utp/audio'), (3106726, 'audio'), (3106728, 'audio'), (3106730, 'utp'), (3106732, 'utp'), (3106734, 'utp'), (3107242, 'utp'), (3107386, ''), (3128209, ''), (3137253, 'audio'), (3137457, 'sdi'), (3153566, ''), (3153789, ''), (3153804, ''), (3153829, ''), (3169041, ''), (3186155, ''), (3186182, ''), (3232020, 'utp'), (3232179, 'utp'), (3233011, ''), (3253312, 'utp'), (3253864, 'hdmi/hdmi/vga/sdi/4alarm/utp')]
+# # els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ElectricalEquipment).WhereElementIsElementType().ToElements()
+# for i in src:
+# 	doc.GetElement(ElementId(i[0])).LookupParameter('КабельСигнальный').Set(i[1])
+# 	# print('{}\t{}'.format(symbol.Id, symbol.LookupParameter('КабельСигнальный').AsString()))
+# t.Commit()
+
+
+
+
+# schedules = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Schedules).WhereElementIsNotElementType().ToElements()
+
+# schedules = list(filter(lambda x: 'Эл ' in x.Name, schedules))
+
+# for sch in schedules:
+#     val = float(sch.Name.split('Эл ')[-1].replace(',', '.'))
+#     for fieldindex, sch_filter in enumerate(sch.Definition.GetFilters()):
+#         if sch_filter.IsDoubleValue:
+#             if sch_filter.GetDoubleValue() == 1.01:
+#                 sch_filter.SetValue(val)
+#             elif sch_filter.GetDoubleValue() == 1.011:
+#                 sch_filter.SetValue(val + 0.001)
+#         sch.Definition.SetFilter(fieldindex, sch_filter)
+
+# t.Commit()
+
+
+
+
+# grids = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Grids).WhereElementIsNotElementType().ToElements()
+# for el in grids:
+#     el.SetVerticalExtents(-50, 150)
+
+
+# t.Commit()
+
+
+# def natural_sorted(list, key=lambda s: s):
+#     """
+#     Sort the list into natural alphanumeric order.
+#     """
+#     def get_alphanum_key_func(key):
+#         convert = lambda text: int(text) if text.isdigit() else text  # noqa
+#         return lambda s: [convert(c) for c in re.split('([0-9]+)', key(s))]
+#     sort_key = get_alphanum_key_func(key)
+#     return sorted(list, key=sort_key)
+
+
+# views = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).WhereElementIsNotElementType().ToElements()
+# views = [i for i in views if i.Origin]
+# views = [i for i in views if i.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString() == '3D вид']
+# views = natural_sorted(views, key=lambda x: x.Name)
+# views = sorted(views, key=lambda x: x.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString())
+# # data = []
+# for view in views:
+#     # view_filters = [doc.GetElement(ElementId(i)) for i in [1187542, 1189543, 1189548, ]]
+#     for elid, pat in [(1187542, 'ADSK_Накрест косая_2мм'), (1189543, 'General_Honeycomb'), (1189548, 'STARS'), ]:
+#         filt = doc.GetElement(ElementId(elid))
+#         cfg = view.GetFilterOverrides(filt.Id)
+#         # cfg.SetProjectionLineWeight(              int(current_pro_line_weight)           ) if      int(current_pro_line_weight)     > 0 else None  # noqa
+#         # cfg.SetProjectionLineColor(               col(current_pro_line_color)            ) if      col(current_pro_line_color)          else None  # noqa
+#         # cfg.SetProjectionLinePatternId(          line(current_pro_line_pattern_id)       ) if     line(current_pro_line_pattern_id)     else None  # noqa
+#         # cfg.SetProjectionFillPatternVisible( bool(int(current_pro_fill_pattern_visible)) )                                                         # noqa
+#         cfg.SetProjectionFillPatternId(          fill(pat)                               )
+#         cfg.SetProjectionFillColor(               col('192 192 192')                     )
+#         # cfg.SetSurfaceTransparency(               int(current_transparency)              )                                                         # noqa
+#         # cfg.SetCutLineWeight(                     int(current_cut_line_weight)           ) if      int(current_cut_line_weight)     > 0 else None  # noqa
+#         # cfg.SetCutLineColor(                      col(current_cut_line_color)            ) if      col(current_cut_line_color)          else None  # noqa
+#         # cfg.SetCutLinePatternId(                 line(current_cut_line_pattern_id)       ) if     line(current_cut_line_pattern_id)     else None  # noqa
+#         # cfg.SetCutFillPatternVisible(        bool(int(current_cut_fill_pattern_visible)) )                                                         # noqa
+#         # cfg.SetCutFillPatternId(                 fill(current_cut_fill_pattern_id)       ) if     fill(current_cut_fill_pattern_id)     else None  # noqa
+#         # cfg.SetCutFillColor(                      col(current_cut_fill_color)            ) if      col(current_cut_fill_color)          else None  # noqa
+#         # cfg.SetHalftone(                     bool(int(current_halftone))                 )                                                         # noqa
+#         # view.SetFilterOverrides(ElementId(int(current_filter_id)), cfg)
+
+
+# els = FilteredElementCollector(doc).WhereElementIsElementType().ToElements()
+# for el in els:
+#     if el.LookupParameter('Изготовитель'):
+#         if el.LookupParameter('Изготовитель').HasValue:
+#             old = el.LookupParameter('Изготовитель').AsString() == 'Лиссант'
+#             if old:
+#                 el.LookupParameter('Изготовитель').Set('Россия')
+#                 print('{} {}'.format(old, el.LookupParameter('Имя типа').AsString()))
+
+
 # sel = [doc.GetElement(elid) for elid in uidoc.Selection.GetElementIds()]
+# ducts = [i for i in sel if i.LookupParameter('Категория').AsValueString() == 'Воздуховоды']
+
+# done = []
+# for el in ducts:
+#   sys = el.MEPSystem
+#   if sys:
+#       if sys.Id.IntegerValue not in done:
+#           sys.Name += ' транзит 7'
+#           done.append(sys.Id.IntegerValue)
+
+# t.Commit()
 
 # cir0 = [i for i in sel if i.Name == 'Линии детализации'][0]
 # cir1 = [i for i in sel if i.Name == 'Линии детализации'][1]
@@ -42,7 +178,7 @@ t.Commit()
 # t.Start()
 
 # # for i in dir(view.Location):
-# # 	print(i)
+# #     print(i)
 # # cir.Location.Move(view.GetBoxCenter())
 # print(doc.ActiveView.Outline.Min)
 # print(doc.ActiveView.Outline.Max)

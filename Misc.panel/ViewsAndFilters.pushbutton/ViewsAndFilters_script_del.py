@@ -45,14 +45,14 @@ src_filters, src_views = src.split('\n\n')
 src_filters = src_filters.split('\n')[1:]
 src_views = src_views.split('\n')[1:]
 if src_filters:
-    src_filters.pop(-1) if src_filters[-1].split('\t')[1] == '---' else None
+    src_filters.pop(-1) if src_filters[-1].split('\t')[0] == '---' else None
     src_f_ids =   [i.split('\t')[0] for i in src_filters]
     src_f_names = [i.split('\t')[1] for i in src_filters]
     src_f_cats =  [i.split('\t')[2] for i in src_filters]
     src_f_logic = [i.split('\t')[3] for i in src_filters]
     src_f_rules = [i.split('\t')[4] for i in src_filters]
 if src_views:
-    src_views.pop(-1) if src_views[-1].split('\t')[1] == '---' else None
+    src_views.pop(-1) if src_views[-1].split('\t')[0] == '---' else None
     src_v_view_id =                  [i.split('\t')[0] for i in src_views]
     src_v_view_symbol =              [i.split('\t')[1] for i in src_views]
     src_v_view_name =                [i.split('\t')[2] for i in src_views]
@@ -387,239 +387,31 @@ def fill(s):
     all_patterns = FilteredElementCollector(doc).OfClass(FillPatternElement).ToElements()
     return [i for i in all_patterns if i.Name == s][0].Id
 
-done = []
+
 views = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Views).WhereElementIsNotElementType().ToElements()
 views = [i for i in views if i.Origin]
+views = [i for i in views if i.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString() == '3D вид']
 views = natural_sorted(views, key=lambda x: x.Name)
 views = sorted(views, key=lambda x: x.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString())
-data = []
+# data = []
 for view in views:
-    view_filters = [doc.GetElement(i) for i in view.GetFilters()]
-    if view_filters:
-        for view_filter in view_filters:
-            cfg = view.GetFilterOverrides(view_filter.Id)
-            current_view_id = str(view.Id)
-            current_view_symbol = view.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString()
-            current_view_name = view.Name
-            current_filter_id = str(view_filter.Id)
-            current_filter_name = str(view_filter.Name)
-            current_visibility = str(1 if view.GetFilterVisibility(view_filter.Id) else 0)
-            current_pro_line_weight = str(cfg.ProjectionLineWeight)
-            current_pro_line_color = str('{} {} {}'.format(cfg.ProjectionLineColor.Red, cfg.ProjectionLineColor.Green, cfg.ProjectionLineColor.Blue) if cfg.ProjectionLineColor.IsValid else '-1')
-            current_pro_line_pattern_id = str(doc.GetElement(cfg.ProjectionLinePatternId).Name if cfg.ProjectionLinePatternId.IntegerValue > 0 else '-1')
-            current_pro_fill_pattern_visible = str(1 if cfg.IsProjectionFillPatternVisible else 0)
-            current_pro_fill_pattern_id = str(doc.GetElement(cfg.ProjectionFillPatternId).Name if cfg.ProjectionFillPatternId.IntegerValue > 0 else '-1')
-            current_pro_fill_color = str('{} {} {}'.format(cfg.ProjectionFillColor.Red, cfg.ProjectionFillColor.Green, cfg.ProjectionFillColor.Blue) if cfg.ProjectionFillColor.IsValid else '-1')
-            current_transparency = str(cfg.Transparency)
-            current_cut_line_weight = str(cfg.CutLineWeight)
-            current_cut_line_color = str('{} {} {}'.format(cfg.CutLineColor.Red, cfg.CutLineColor.Green, cfg.CutLineColor.Blue) if cfg.CutLineColor.IsValid else '-1')
-            current_cut_line_pattern_id = str(doc.GetElement(cfg.CutLinePatternId).Name if cfg.CutLinePatternId.IntegerValue > 0 else '-1')
-            current_cut_fill_pattern_visible = str(1 if cfg.IsCutFillPatternVisible else 0)
-            current_cut_fill_pattern_id = str(doc.GetElement(cfg.CutFillPatternId).Name if cfg.CutFillPatternId.IntegerValue > 0 else '-1')
-            current_cut_fill_color = str('{} {} {}'.format(cfg.CutFillColor.Red, cfg.CutFillColor.Green, cfg.CutFillColor.Blue) if cfg.CutFillColor.IsValid else '-1')
-            current_halftone = str(1 if cfg.Halftone else 0)
-            done.append((current_view_id, current_filter_id))
-
-            status = ''
-            if src_views:
-                line_no = None
-                for row in src_views:
-                    if current_view_id in row and current_filter_id in row:
-                        line_no = src_views.index(row)
-                if line_no is not None:
-                    new_view_symbol = src_v_view_symbol[line_no]
-                    view_symbol_mod = True if new_view_symbol != current_view_symbol else False  ########################################## дописать
-                    current_view_symbol = new_view_symbol if new_view_symbol != current_view_symbol else current_view_symbol
-
-                    new_view_name = src_v_view_name[line_no]
-                    view_name_mod = True if new_view_name != current_view_name else False
-                    current_view_name = new_view_name if new_view_name != current_view_name else current_view_name
-
-                    new_visibility = src_v_visibility[line_no]
-                    visibility_mod = True if new_visibility != current_visibility else False
-                    current_visibility = new_visibility if new_visibility != current_visibility else current_visibility
-
-                    new_pro_line_weight = src_v_pro_line_weight[line_no]
-                    cfg_mod = True if new_pro_line_weight != current_pro_line_weight else False
-                    current_pro_line_weight = new_pro_line_weight if new_pro_line_weight != current_pro_line_weight else current_pro_line_weight
-
-                    new_pro_line_color = src_v_pro_line_color[line_no]
-                    cfg_mod = True if new_pro_line_color != current_pro_line_color else cfg_mod
-                    current_pro_line_color = new_pro_line_color if new_pro_line_color != current_pro_line_color else current_pro_line_color
-
-                    new_pro_line_pattern_id = src_v_pro_line_pattern_id[line_no]
-                    cfg_mod = True if new_pro_line_pattern_id != current_pro_line_pattern_id else cfg_mod
-                    current_pro_line_pattern_id = new_pro_line_pattern_id if new_pro_line_pattern_id != current_pro_line_pattern_id else current_pro_line_pattern_id
-
-                    new_pro_fill_pattern_visible = src_v_pro_fill_pattern_visible[line_no]
-                    cfg_mod = True if new_pro_fill_pattern_visible != current_pro_fill_pattern_visible else cfg_mod
-                    current_pro_fill_pattern_visible = new_pro_fill_pattern_visible if new_pro_fill_pattern_visible != current_pro_fill_pattern_visible else current_pro_fill_pattern_visible
-
-                    new_pro_fill_pattern_id = src_v_pro_fill_pattern_id[line_no]
-                    cfg_mod = True if new_pro_fill_pattern_id != current_pro_fill_pattern_id else cfg_mod
-                    current_pro_fill_pattern_id = new_pro_fill_pattern_id if new_pro_fill_pattern_id != current_pro_fill_pattern_id else current_pro_fill_pattern_id
-
-                    new_pro_fill_color = src_v_pro_fill_color[line_no]
-                    cfg_mod = True if new_pro_fill_color != current_pro_fill_color else cfg_mod
-                    current_pro_fill_color = new_pro_fill_color if new_pro_fill_color != current_pro_fill_color else current_pro_fill_color
-
-                    new_transparency = src_v_transparency[line_no]
-                    cfg_mod = True if new_transparency != current_transparency else cfg_mod
-                    current_transparency = new_transparency if new_transparency != current_transparency else current_transparency
-
-                    new_cut_line_weight = src_v_cut_line_weight[line_no]
-                    cfg_mod = True if new_cut_line_weight != current_cut_line_weight else cfg_mod
-                    current_cut_line_weight = new_cut_line_weight if new_cut_line_weight != current_cut_line_weight else current_cut_line_weight
-
-                    new_cut_line_color = src_v_cut_line_color[line_no]
-                    cfg_mod = True if new_cut_line_color != current_cut_line_color else cfg_mod
-                    current_cut_line_color = new_cut_line_color if new_cut_line_color != current_cut_line_color else current_cut_line_color
-
-                    new_cut_line_pattern_id = src_v_cut_line_pattern_id[line_no]
-                    cfg_mod = True if new_cut_line_pattern_id != current_cut_line_pattern_id else cfg_mod
-                    current_cut_line_pattern_id = new_cut_line_pattern_id if new_cut_line_pattern_id != current_cut_line_pattern_id else current_cut_line_pattern_id
-
-                    new_cut_fill_pattern_visible = src_v_cut_fill_pattern_visible[line_no]
-                    cfg_mod = True if new_cut_fill_pattern_visible != current_cut_fill_pattern_visible else cfg_mod
-                    current_cut_fill_pattern_visible = new_cut_fill_pattern_visible if new_cut_fill_pattern_visible != current_cut_fill_pattern_visible else current_cut_fill_pattern_visible
-
-                    new_cut_fill_pattern_id = src_v_cut_fill_pattern_id[line_no]
-                    cfg_mod = True if new_cut_fill_pattern_id != current_cut_fill_pattern_id else cfg_mod
-                    current_cut_fill_pattern_id = new_cut_fill_pattern_id if new_cut_fill_pattern_id != current_cut_fill_pattern_id else current_cut_fill_pattern_id
-
-                    new_cut_fill_color = src_v_cut_fill_color[line_no]
-                    cfg_mod = True if new_cut_fill_color != current_cut_fill_color else cfg_mod
-                    current_cut_fill_color = new_cut_fill_color if new_cut_fill_color != current_cut_fill_color else current_cut_fill_color
-
-                    new_halftone = src_v_halftone[line_no]
-                    cfg_mod = True if new_halftone != current_halftone else cfg_mod
-                    current_halftone = new_halftone if new_halftone != current_halftone else current_halftone
-
-                    if current_view_symbol == 'del':
-                        view.RemoveFilter(ElementId(int(current_filter_id)))
-                        status = 'del'
-                    else:
-                        if view_name_mod:
-                            view.Name = current_view_name
-                            status = 'Mod'
-                        if visibility_mod:
-                            view.SetFilterVisibility(ElementId(int(current_filter_id)), bool(int(filter_visibility)))
-                            status = 'Mod'
-                        if cfg_mod:
-                            cfg.SetProjectionLineWeight(              int(current_pro_line_weight)           ) if      int(current_pro_line_weight)     > 0 else None  # noqa
-                            cfg.SetProjectionLineColor(               col(current_pro_line_color)            ) if      col(current_pro_line_color)          else None  # noqa
-                            cfg.SetProjectionLinePatternId(          line(current_pro_line_pattern_id)       ) if     line(current_pro_line_pattern_id)     else None  # noqa
-                            cfg.SetProjectionFillPatternVisible( bool(int(current_pro_fill_pattern_visible)) )                                                         # noqa
-                            cfg.SetProjectionFillPatternId(          fill(current_pro_fill_pattern_id)       ) if     fill(current_pro_fill_pattern_id)     else None  # noqa
-                            cfg.SetProjectionFillColor(               col(current_pro_fill_color)            ) if      col(current_pro_fill_color)          else None  # noqa
-                            cfg.SetSurfaceTransparency(               int(current_transparency)              )                                                         # noqa
-                            cfg.SetCutLineWeight(                     int(current_cut_line_weight)           ) if      int(current_cut_line_weight)     > 0 else None  # noqa
-                            cfg.SetCutLineColor(                      col(current_cut_line_color)            ) if      col(current_cut_line_color)          else None  # noqa
-                            cfg.SetCutLinePatternId(                 line(current_cut_line_pattern_id)       ) if     line(current_cut_line_pattern_id)     else None  # noqa
-                            cfg.SetCutFillPatternVisible(        bool(int(current_cut_fill_pattern_visible)) )                                                         # noqa
-                            cfg.SetCutFillPatternId(                 fill(current_cut_fill_pattern_id)       ) if     fill(current_cut_fill_pattern_id)     else None  # noqa
-                            cfg.SetCutFillColor(                      col(current_cut_fill_color)            ) if      col(current_cut_fill_color)          else None  # noqa
-                            cfg.SetHalftone(                     bool(int(current_halftone))                 )                                                         # noqa
-                            view.SetFilterOverrides(ElementId(int(current_filter_id)), cfg)
-                            status = 'Mod'
-
-            data.append([current_view_id, current_view_symbol, current_view_name, current_filter_id, current_filter_name,
-                         current_visibility, current_pro_line_weight, current_pro_line_color, current_pro_line_pattern_id,
-                         current_pro_fill_pattern_visible, current_pro_fill_pattern_id, current_pro_fill_color, current_transparency,
-                         current_cut_line_weight, current_cut_line_color, current_cut_line_pattern_id, current_cut_fill_pattern_visible,
-                         current_cut_fill_pattern_id, current_cut_fill_color, current_halftone, status])
-    else:
-        current_view_id = str(view.Id)
-        current_view_symbol = view.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString()
-        current_view_name = view.Name
-        data.append([current_view_id, current_view_symbol, current_view_name, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
-
-all_filters = FilteredElementCollector(doc).OfClass(ParameterFilterElement).ToElements()
-if src_views:
-    view_ids = [str(i.Id) for i in views]
-    for (line_no, (view_id, filter_id)) in enumerate(zip(src_v_view_id, src_v_filter_id)):
-        if (view_id, filter_id) not in done:
-            # print(view_id, filter_id)
-            # line_no = src_v_view_id.index(view_id)
-
-            orig_view_name =           src_v_view_symbol[line_no]
-            view_id =                  src_v_view_id[line_no]
-            view_name =                src_v_view_name[line_no]
-            filter_id =                src_v_filter_id[line_no]
-            filter_name =              src_v_filter_name[line_no]
-            visibility =               src_v_visibility[line_no]               if filter_name else ''
-            pro_line_weight =          src_v_pro_line_weight[line_no]          if filter_name else ''
-            pro_line_color =           src_v_pro_line_color[line_no]           if filter_name else ''
-            pro_line_pattern_id =      src_v_pro_line_pattern_id[line_no]      if filter_name else ''
-            pro_fill_pattern_visible = src_v_pro_fill_pattern_visible[line_no] if filter_name else ''
-            pro_fill_pattern_id =      src_v_pro_fill_pattern_id[line_no]      if filter_name else ''
-            pro_fill_color =           src_v_pro_fill_color[line_no]           if filter_name else ''
-            transparency =             src_v_transparency[line_no]             if filter_name else ''
-            cut_line_weight =          src_v_cut_line_weight[line_no]          if filter_name else ''
-            cut_line_color =           src_v_cut_line_color[line_no]           if filter_name else ''
-            cut_line_pattern_id =      src_v_cut_line_pattern_id[line_no]      if filter_name else ''
-            cut_fill_pattern_visible = src_v_cut_fill_pattern_visible[line_no] if filter_name else ''
-            cut_fill_pattern_id =      src_v_cut_fill_pattern_id[line_no]      if filter_name else ''
-            cut_fill_color =           src_v_cut_fill_color[line_no]           if filter_name else ''
-            halftone =                 src_v_halftone[line_no]                 if filter_name else ''
-
-            if orig_view_name:
-                print(orig_view_name)
-                if view_name in [i.Name for i in views]:
-                    # status = 'Name error'
-                    # data.append([view_id, orig_view_name, view_name] + ['' for i in range(17)] + [status])
-                    continue
-                orig_view = [i for i in views if i.Name == orig_view_name][0]
-                view = doc.GetElement(orig_view.Duplicate(ViewDuplicateOption.Duplicate))
-            else:
-                view = [i for i in views if str(i.Id) == view_id][0]
-
-            try:
-            	view.Name = view_name
-            except Exception as e:
-            	print('view_name')
-                print(view.Name)
-            	print(view_name)
-            	raise e
-            view_id = view.Id
-            view_symbol = view.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString()
-
-            if filter_name:
-                filter_id = str([i.Id for i in all_filters if i.Name == filter_name][0])
-                view.SetFilterVisibility(ElementId(int(filter_id)), bool(int(visibility)))
-                cfg = OverrideGraphicSettings()
-
-                cfg.SetProjectionLineWeight(              int(pro_line_weight)           ) if      int(pro_line_weight)     > 0 else None  # noqa
-                cfg.SetProjectionLineColor(               col(pro_line_color)            ) if      col(pro_line_color)          else None  # noqa
-                cfg.SetProjectionLinePatternId(          line(pro_line_pattern_id)       ) if     line(pro_line_pattern_id)     else None  # noqa
-                cfg.SetProjectionFillPatternVisible( bool(int(pro_fill_pattern_visible)) )                                                         # noqa
-                cfg.SetProjectionFillPatternId(          fill(pro_fill_pattern_id)       ) if     fill(pro_fill_pattern_id)     else None  # noqa
-                cfg.SetProjectionFillColor(               col(pro_fill_color)            ) if      col(pro_fill_color)          else None  # noqa
-                cfg.SetSurfaceTransparency(               int(transparency)              )                                                         # noqa
-                cfg.SetCutLineWeight(                     int(cut_line_weight)           ) if      int(cut_line_weight)     > 0 else None  # noqa
-                cfg.SetCutLineColor(                      col(cut_line_color)            ) if      col(cut_line_color)          else None  # noqa
-                cfg.SetCutLinePatternId(                 line(cut_line_pattern_id)       ) if     line(cut_line_pattern_id)     else None  # noqa
-                cfg.SetCutFillPatternVisible(        bool(int(cut_fill_pattern_visible)) )                                                         # noqa
-                cfg.SetCutFillPatternId(                 fill(cut_fill_pattern_id)       ) if     fill(cut_fill_pattern_id)     else None  # noqa
-                cfg.SetCutFillColor(                      col(cut_fill_color)            ) if      col(cut_fill_color)          else None  # noqa
-                cfg.SetHalftone(                     bool(int(halftone))                 )                                                         # noqa
-
-                view.SetFilterOverrides(ElementId(int(filter_id)), cfg)
-            status = 'New'
-            data.append([view_id, view_symbol, view_name, filter_id, filter_name,
-                         visibility, pro_line_weight, pro_line_color, pro_line_pattern_id,
-                         pro_fill_pattern_visible, pro_fill_pattern_id, pro_fill_color, transparency,
-                         cut_line_weight, cut_line_color, cut_line_pattern_id, cut_fill_pattern_visible,
-                         cut_fill_pattern_id, cut_fill_color, halftone, status])
+    # view_filters = [doc.GetElement(ElementId(i)) for i in [1187542, 1189543, 1189548, ]]
+    for elid, pat in [(1187542, 'ADSK_Накрест косая_2мм'), (1189543, 'General_Honeycomb'), (1189548, 'STARS'), ]:
+        # print(view.Name)
+        filt = doc.GetElement(ElementId(elid))
+        # print(filt.Name)
+        cfg = OverrideGraphicSettings()
+        # cfg.SetProjectionLineWeight(              int(current_pro_line_weight)           ) if      int(current_pro_line_weight)     > 0 else None  # noqa
+        # cfg.SetProjectionLineColor(               col(current_pro_line_color)            ) if      col(current_pro_line_color)          else None  # noqa
+        # cfg.SetProjectionLinePatternId(          line(current_pro_line_pattern_id)       ) if     line(current_pro_line_pattern_id)     else None  # noqa
+        # cfg.SetProjectionFillPatternVisible( bool(int(current_pro_fill_pattern_visible)) )                                                         # noqa
+        cfg.SetProjectionFillPatternId(          fill(pat)                               )
+        cfg.SetProjectionFillColor(               col('192 192 192')                     )
+        view.SetFilterOverrides(ElementId(elid), cfg)
 
 
-#     # doc.ActiveView.Duplicate(name).SetFilterVisibility([i.Id for i in all_filters if i.Name == name + ' не'][0], False)
-#     new_view = doc.GetElement(doc.ActiveView.Duplicate(ViewDuplicateOption.Duplicate))
-#     new_view.Name = name
-#     new_view.SetFilterVisibility(pfilter.Id, False)
 
-n = [len([i for i in data if i[20] != ''])]
-data.append(n + ['---' for i in range(19)] + n)
+# data.append(['---' for i in range(20)] + [len([i for i in data if i[20] != ''])])
 
 columns = ['Id вида', 'Тип вида', 'Имя вида', 'Id фильтра', 'Имя фильтра', 'Видимость', 'Проекция. Линии. Вес',
            'Проекция. Линии. Цвет', 'Проекция. Линии. Образец', 'Проекция. Штриховки. Видимость', 'Проекция. Штриховки. Образец',

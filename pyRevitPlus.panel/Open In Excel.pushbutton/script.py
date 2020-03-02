@@ -60,7 +60,9 @@ else:
 selection = rpw.ui.Selection()
 
 # Get any selected View Schedules or Schedule Instances
-selected_schedules = [e for e in selection.elements
+# selected_schedules = [e for e in selection.elements
+                      # if isinstance(e, (DB.ViewSchedule, DB.ScheduleSheetInstance))]
+selected_schedules = [e for e in selection.get_elements(wrapped=False)
                       if isinstance(e, (DB.ViewSchedule, DB.ScheduleSheetInstance))]
 
 # If no view is selected, check if Active View is a schedule

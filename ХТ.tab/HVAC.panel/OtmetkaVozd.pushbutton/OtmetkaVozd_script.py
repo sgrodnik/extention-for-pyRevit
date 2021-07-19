@@ -45,6 +45,7 @@ t.Start()
 
 for el in sel:
     if el.LookupParameter('Смещение'):
+        el.LookupParameter('Базовый уровень').Set(target.LookupParameter('Базовый уровень').AsElementId())
         el.LookupParameter('Смещение').Set(target.LookupParameter('Смещение').AsDouble())
 
 #k = 304.8

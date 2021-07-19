@@ -62,16 +62,23 @@ with forms.ProgressBar() as pb:
         '2×Alarm':                                              ['Кабель специальный',                      '2×Alarm',                          0      ,            'Россия'                                ],  # noqa
         '4×Alarm':                                              ['Кабель специальный',                      '4×Alarm',                          0      ,            'Россия'                                ],  # noqa
         '---':                                                  ['------------------',                      '-------------',                    1000   ,            '------'                                ],  # noqa
-        'sdi':                                                  ['Кабель коаксильный',                      'RG-6U (75 Ом)',                    1000   ,            'Россия'                                ],  # noqa
-        'utp':                                                  ['Кабель парной скрутки',                   'UTP 4x2x0,52 cat 6',               1000   ,            'Россия'                                ],  # noqa
-        'ftp':                                                  ['Кабель парной скрутки',                   'FTP 4x2x0,52 cat 6',               1000   ,            'Россия'                                ],  # noqa
+        'sdi':                                                  ['Кабель коаксильный белый (RG 6)',         'MARS HD, Cu/Al/CuSn, 96%, 75 Ом',  1000   ,            'Rexant'                                ],  # noqa
+        'sdi4':                                                 ['Кабель коаксильный 4 в 1 (для компактной прокладки)', 'Quad-link 3G-SDI',     1000   ,            'Kramer / AJA'                          ],  # noqa
+        'utp':                                                  ['Кабель парной скрутки огнестойкий',       'UTP 4×2×0,52 cat 6 ZH нг(А)-HF',   1000   ,            'Rexant'                                ],  # noqa
+        'utpp':                                                 ['Пaтч-корд F/UTP, категория 6, PVC серый', 'F/UTP cat 6 RJ45-RJ45',            400    ,            'Rexant'                                ],  # noqa
+        # 'utp2':      не используем двупарку                   ['Кабель парной скрутки',                   'UTP 2PR 24AWG CAT5 305м нг(А)-HF', 1000   ,            'Rexant'                                ],  # noqa
+        'ftp':                                                  ['Кабель парной скрутки огнестойкий',       'FTP 4×2×0,52 cat 5e ZH нг(А)-HF',  1000   ,            'Rexant'                                ],  # noqa
         'hdmi':                                                 ['Кабель мультимедийный высокоскоростной',  'HDMI',                             200    ,            'Россия'                                ],  # noqa
         'vga':                                                  ['Кабель видеоинтерфейсный',                'VGA',                              100    ,            'Россия'                                ],  # noqa
-        'pwr':                                                  ['Кабель парной скрутки',                   'КПСнг(А)-FRLS 1x2x0,75',           1000   ,            'Россия'                                ],  # noqa
+        'svideo':                                               ['Кабель видеоинтерфейсный',                'S-Video',                          100    ,            'Россия'                                ],  # noqa
+        'pwr':                                                  ['Кабель парной скрутки огнестойкий',       'КПСнг(А)-FRLS 1×2×0,75',           1000   ,            'Rexant'                                ],  # noqa
         'audio':                                                ['Кабель акустический',                     'Primary Wire M ACS0102',           1000   ,            'Audiocore'                             ],  # noqa
+        'aud':                                                  ['Кабель акустический экранированный',      'LCS-4 (PL-4704)',                  1000   ,            'Россия'                                ],  # noqa
         'usb':                                                  ['Кабель',                                  'USB 2.0',                          100    ,            'Россия'                                ],  # noqa
         '4alarm':                                               ['Кабель специальный',                      '4×Alarm',                          0      ,            'ООО "Медицинские системы визуализации"'],  # noqa
         '2alarm':                                               ['Кабель специальный',                      '2×Alarm',                          0      ,            'ООО "Медицинские системы визуализации"'],  # noqa
+        '6alarm':                                               ['Кабель специальный',                      '6×Alarm',                          0      ,            'ООО "Медицинские системы визуализации"'],  # noqa
+        'opt':                                                  ['Кабель волоконно-оптический',             'ОБВ-М нг(А)-HFLTx G.651 0М3 ММ',   1000      ,         'ООО "Инкаб"'],  # noqa
     }
 
     els = FilteredElementCollector(doc).OfCategory(
@@ -148,9 +155,10 @@ with forms.ProgressBar() as pb:
                     arr.append(cir)
             if arr:
                 len1 = len(arr)
-                len2 = len(doc.GetElement(el.GetTypeId()).LookupParameter('КабельСигнальный').AsString().split('/'))
+                cabs = doc.GetElement(el.GetTypeId()).LookupParameter('КабельСигнальный').AsString().split('/')
+                len2 = len([i for i in cabs if i != ''])
                 name = el.LookupParameter('Тип').AsValueString()
-                if len1 > len2:
+                if len1 > len2 and doc.GetElement(el.GetTypeId()).LookupParameter('Имя типа').AsString() != 'Трассировка':
                     print('Ошибка: {}: подключений: {} КабельСигнальный: {}'.format(output.linkify(el.Id, name), len1, len2))
                 # elif len1 < len2:
                 #     print('Предупреждение: {}: подключений: {} КабельСигнальный: {}'.format(output.linkify(el.Id, name), len1, len2))
@@ -178,10 +186,21 @@ with forms.ProgressBar() as pb:
 
     for cir in cirs:
         cir = Cir(cir)
-        cir.origin.LookupParameter('Имя нагрузки').Set(cir.els[0].LookupParameter('Тип').AsValueString().replace(' значок выкл', ''))  # Используется имя только первого элемента цепи! Могут быть проблемы при разнородных шлейфах
+        cir.origin.LookupParameter('Имя нагрузки').Set(cir.els[0].LookupParameter('Тип').AsValueString().replace(' значок выкл', '').split('((')[0])  # Используется имя только первого элемента цепи! Могут быть проблемы при разнородных шлейфах
         cir.origin.LookupParameter('Помещение').Set(cir.els[0].LookupParameter('Помещение').AsString() or '')  # –//–
         cir.origin.LookupParameter('Помещение панели').Set(cir.panel.LookupParameter('Помещение').AsString() or '') if cir.origin.LookupParameter('Помещение панели') else None
-        cir.panel.LookupParameter('Имя панели').Set(cir.panel.LookupParameter('Тип').AsValueString())
+        cir.origin.LookupParameter('Помещение цепи').Set(cir.els[0].LookupParameter('Помещение').AsString().replace('Стойка ', '') or '') if cir.origin.LookupParameter('Помещение цепи') else None
+        cir.panel.LookupParameter('Имя панели').Set(cir.panel.LookupParameter('Тип').AsValueString().split('((')[0])
+        cir.origin.LookupParameter('Комментарии').Set('Панель "' + cir.panel.LookupParameter('Тип').AsValueString() + '", id цепи ' + str(cir.id))
+        if cir.origin.LookupParameter('Позиция начала'):
+            param = cir.els[0].LookupParameter('ADSK_Обозначение')
+            designation = param.AsString() if param and param.AsString() else ''
+            cost = doc.GetElement(cir.els[0].GetTypeId()).LookupParameter('Стоимость').AsDouble()  # Используется имя только первого элемента цепи! Могут быть проблемы при разнородных шлейфах
+            cir.origin.LookupParameter('Позиция начала').Set('{:n}{}'.format(cost, '.' + designation if designation else '').replace(',', '.'))
+            param = cir.panel.LookupParameter('ADSK_Обозначение')
+            designation = param.AsString() if param and param.AsString() else ''
+            cost = doc.GetElement(cir.panel.GetTypeId()).LookupParameter('Стоимость').AsDouble()
+            cir.origin.LookupParameter('Позиция конца').Set('{:n}{}'.format(cost, '.' + designation if designation else '').replace(',', '.'))
 
     set_progress(pb, 20)
 
@@ -214,7 +233,6 @@ with forms.ProgressBar() as pb:
             cir.wire_sring_and_number_by_element = (wire_as_slashed_string, i)
             i += 1
 
-
     def get_wire_name(cir):
         wire_sring = cir.wire_sring_and_number_by_element[0]
         number_by_element = cir.wire_sring_and_number_by_element[1]
@@ -225,7 +243,18 @@ with forms.ProgressBar() as pb:
         return wire_name
 
     def get_strict_length(cir):
-        instance_strict_length = cir.origin.LookupParameter('Строгая длина').AsDouble() if cir.origin.LookupParameter('Строгая длина') else None
+        param = cir.origin.LookupParameter('Строгая длина, м')
+        instance_strict_length = param.AsString() if param and param.AsString() else ''
+        addition = 0
+        if instance_strict_length:
+            if instance_strict_length.isdigit():
+                instance_strict_length = int(instance_strict_length)
+            elif instance_strict_length[0] == '+':                        # См. ниже
+                addition = int(instance_strict_length[1:])
+                instance_strict_length = None
+            elif instance_strict_length[0] == '-':
+                addition = -int(instance_strict_length[1:])
+                instance_strict_length = None
         if not instance_strict_length:
             wire_sring = cir.wire_sring_and_number_by_element[0]
             number_by_element = cir.wire_sring_and_number_by_element[1]
@@ -234,8 +263,8 @@ with forms.ProgressBar() as pb:
             type_strict_length = None
             if brackets:
                 type_strict_length = float(brackets[0].replace('((', '').replace('))', '').replace(',', '.')) * 1000
-            return type_strict_length
-        return instance_strict_length * 1000
+            return type_strict_length         # + addition * 1000 2020.10.29 недоделал :( проблема в том, что тут возвращается строгая длина, а не прибавка. Надо лезть глубже.
+        return instance_strict_length * 1000  # + addition * 1000 2020.10.29 недоделал :( проблема в том, что тут возвращается строгая длина, а не прибавка. Надо лезть глубже.
 
     set_progress(pb, 40)
 
@@ -256,8 +285,8 @@ with forms.ProgressBar() as pb:
     set_progress(pb, 50)
 
     coefficient_for_piece = 1.05
-    coefficient_for_lenght = 1.5
-    piece_names_list = ['HDMI', 'HDMI(не включать)', 'USB 2.0(не включать)', 'VGA', 'hdmi', 'usb', 'vga']
+    coefficient_for_lenght = 1.25
+    piece_names_list = ['HDMI', 'HDMI(не включать)', 'USB 2.0(не включать)', 'VGA', 'hdmi', 'usb', 'vga', 'svideo', 'utpp']
     piece_lenght_list = [1, 2, 3, 5, 20]
 
     for cir in Cir.objects:
@@ -265,14 +294,20 @@ with forms.ProgressBar() as pb:
         # cir.origin.LookupParameter('КабельЦепи').Set(wire_name)
 
         name = dict_[wire_name][0] if wire_name in dict_ else 'Ошибка, добавь в скрипт ' + wire_name
-        cir.origin.LookupParameter('Наименование').Set(name)
+        # print(cir.origin.Id)
+        cir.origin.LookupParameter('Наименование').Set(name)  #2021.02.05 странно, откуда тут взялся этот параметр
 
         reserve = dict_[wire_name][2] if wire_name in dict_ else 0
         strict_length = get_strict_length(cir)
         if strict_length:
             lenght = strict_length
         else:
-            lenght = cir.origin.Length * k * coefficient_for_piece + reserve
+            if cir.origin.LookupParameter('Кабель - Длина'):
+                lenghtSE = cir.origin.LookupParameter('Кабель - Длина').AsDouble()
+            else:
+                lenghtSE = cir.origin.Length
+
+            lenght = lenghtSE * k * coefficient_for_piece + reserve
         mark = dict_[wire_name][1] if wire_name in dict_ else 'Ошибка, добавь в скрипт ' + wire_name
         calc_method = 1
         if wire_name in piece_names_list:
@@ -292,11 +327,15 @@ with forms.ProgressBar() as pb:
             if strict_length:
                 lenght = strict_length
             else:
-                lenght = ceil(cir.origin.Length * k * coefficient_for_lenght + reserve / 1000)
+                if cir.origin.LookupParameter('Кабель - Длина'): # 2021.05.27 вероятно это лишний повтор, см 25 строк выше
+                    lenghtSE = cir.origin.LookupParameter('Кабель - Длина').AsDouble()
+                else:
+                    lenghtSE = cir.origin.Length
+                lenght = ceil(lenghtSE * k * coefficient_for_lenght + reserve / 1000)
         cir.origin.LookupParameter('Длина с запасом').Set(ceil(lenght / 1000) * 1000 / k)
         cir.origin.LookupParameter('Тип, марка').Set(mark)
         cir.origin.LookupParameter('КабельЦепи').Set(mark)
-        cir.origin.LookupParameter('Способ расчёта').Set(calc_method)
+        # cir.origin.LookupParameter('Способ расчёта').Set(calc_method)
         cir.origin.LookupParameter('Количество').Set(1 if calc_method else ceil(lenght / 1000))
         cir.origin.LookupParameter('Единицы измерения').Set('шт.' if calc_method else 'м')
 
@@ -317,7 +356,7 @@ with forms.ProgressBar() as pb:
     level = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Levels).WhereElementIsNotElementType().ToElements()[0]
     location = XYZ(0, 0, 0)
     done = []
-    for cir in Cir.objects:
+    for cir in sorted(Cir.objects, key=lambda x: x.origin.LookupParameter('Наименование').AsString() + x.origin.LookupParameter('Тип, марка').AsString()):
         mark = cir.origin.LookupParameter('Тип, марка').AsString()
         if mark not in done:
             done.append(mark)
@@ -329,7 +368,7 @@ with forms.ProgressBar() as pb:
             symbol.LookupParameter('Описание').Set(cir.origin.LookupParameter('Наименование').AsString())
             symbol.LookupParameter('Комментарии к типоразмеру').Set(mark)
             symbol.LookupParameter('Ключевая пометка').Set(cir.origin.LookupParameter('Единицы измерения').AsString())
-            symbol.LookupParameter('Стоимость').Set(200)
+            symbol.LookupParameter('Стоимость').Set(200 + len(done))
             # wire = doc.GetElement(cir.els[0].GetTypeId()).LookupParameter('КабельСигнальный').AsString()
             wire_name = get_wire_name(cir)
             # symbol.LookupParameter('Изготовитель').Set(dict_[wire_name][3])
@@ -342,8 +381,10 @@ with forms.ProgressBar() as pb:
         el = doc.Create.NewFamilyInstance(location, symbol, level, Structure.StructuralType.NonStructural)
         el.LookupParameter('Количество').Set(cir.origin.LookupParameter('Количество').AsDouble())
         el.LookupParameter('Цепь').Set(str(cir.id))
+        el.LookupParameter('ADSK_Группирование') and el.LookupParameter('ADSK_Группирование').Set('3. Кабельная продукция')
         el.LookupParameter('Помещение').Set(cir.origin.LookupParameter('Помещение').AsString())
         el.LookupParameter('Комментарии').Set(cir.origin.LookupParameter('Комментарии').AsString()) if cir.origin.LookupParameter('Комментарии').AsString() else None
+        el.LookupParameter('Часть').Set(cir.origin.LookupParameter('Часть').AsString()) if cir.origin.LookupParameter('Часть') else None
         location += XYZ(0, -0.05, 0)
 
     set_progress(pb, 70)
@@ -380,7 +421,11 @@ with forms.ProgressBar() as pb:
         offsets = path, path[1:] + [None]  # https://stackoverflow.com/a/56654140
         for point, next_point in list(zip(*offsets)):
             if next_point:
-                line = Line.CreateBound(point, next_point)  # https://forums.autodesk.com/t5/revit-api-forum/how-to-crete-3d-modelcurves-to-avoid-exception-curve-must-be-in/td-p/8355936
+                try:
+                    line = Line.CreateBound(point, next_point)  # https://forums.autodesk.com/t5/revit-api-forum/how-to-crete-3d-modelcurves-to-avoid-exception-curve-must-be-in/td-p/8355936
+                except Exception:
+                    print('{} не удалось создать линии'.format(cir.id))
+                    continue
                 direction = line.Direction
                 x, y, z = direction.X, direction.Y, direction.Z
                 normal = XYZ(z - y, x - z, y - x)
@@ -422,7 +467,8 @@ with forms.ProgressBar() as pb:
     for el in els:
         symbol = doc.GetElement(el.GetTypeId())
         if symbol.LookupParameter('Изображение типоразмера').AsElementId().ToString() == '-1':
-            if 'Без УГО' not in symbol.LookupParameter('URL').AsString():
+            # print(symbol.Id)
+            if (not symbol.LookupParameter('URL').AsString()) or ('Без УГО' not in symbol.LookupParameter('URL').AsString()):
                 name = symbol.LookupParameter('Имя типа').AsString()
                 if name not in mydict.keys():
                     mydict[name] = []
@@ -437,6 +483,43 @@ with forms.ProgressBar() as pb:
         print(' '.join(['{}'.format(output.linkify(mydict[name], name)) for name in mydict.keys()]))
         # for name in mydict.keys():
         #     print('{}'.format(output.linkify(mydict[name], name)))
+
+    set_progress(pb, 98)
+
+    els = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ConduitFitting).WhereElementIsNotElementType().ToElements()
+    for el in els:
+        el.LookupParameter('Смещение_') and el.LookupParameter('Смещение_').Set(el.LookupParameter('Смещение').AsDouble())
+
+
+    import json
+    els = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_CableTray).WhereElementIsNotElementType().ToElements())
+    els += list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Conduit).WhereElementIsNotElementType().ToElements())
+    els += list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_ConduitFitting).WhereElementIsNotElementType().ToElements())
+
+    for el in els:
+        symbol = doc.GetElement(el.GetTypeId())
+        if not symbol.LookupParameter('Сортамент'):
+            continue
+        param = symbol.LookupParameter('Сортамент').AsString()
+        settings = json.loads(param or '{}')
+        if not settings:
+            continue
+        # if el.LookupParameter('Диаметр (Размер по каталогу)'):
+        #     size = str(round(float(el.LookupParameter('Диаметр (Размер по каталогу)').AsDouble() * k), 1))
+        if el.LookupParameter('Размер'):
+            size = el.LookupParameter('Размер').AsString().split()[0].split('-')[0]
+        # print(size)
+        # print(settings)
+        el.LookupParameter('ADSK_Наименование').Set(settings['ADSK_Наименование'][size])
+        el.LookupParameter('ADSK_Марка').Set(settings['ADSK_Марка'][size])
+        el.LookupParameter('ADSK_Код изделия').Set(settings['ADSK_Код изделия'][size])
+        if el.LookupParameter('Длина'):
+            length = el.LookupParameter('Длина').AsDouble() * k * float(settings['Множитель длины'])
+            el.LookupParameter('ХТ Длина ОВ').Set(length)
+        # if el.LookupParameter('Кабельная трасса'):  # смотри "Test: Кабельная трасса в Комментарии"
+        #     res = el.LookupParameter('Кабельная трасса').AsString()
+        #     res = ', '.join(res.split('\n'))
+        #     el.LookupParameter('Комментарии').Set(res)
 
     set_progress(pb, 100)
 

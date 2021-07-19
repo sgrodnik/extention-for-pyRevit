@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Shift + Click откроет файл"""
-__title__ = 'Заполнение\nпространств'
+__title__ = 'Заполнение пространств, ТБВ и ХОВС'
 __author__ = 'SG'
 
 import os
@@ -50,7 +50,7 @@ try:
     if not src or src.startswith('\nЭтот'):
         raise IOError
 except IOError:
-    info = '\nЭтот файл должен содержать таблицу (разделители - табуляция).\nПервая строка должна содержать заголовки. Последняя строка может быть пустой.\n' + path
+    info = '\nЭтот файл должен содержать таблицу (разделители - табуляция).\nПервая строка должна содержать заголовки. Последняя строка может быть пустой.\nМежду таблицами одна пустая строка\n' + path
     with open(path, 'w') as file:
         file.write(info.encode("utf-8"))
     os.startfile(path)
@@ -81,7 +81,7 @@ if src_spaces:
     _supplyDevices = titles.index(' Приточные  воздухораспределительные устройства')
     # _sortFactor = titles.index('Сортировка')
     # _level = titles.index('Уровень')
-    _cleanlinessClass = titles.index('Класс чистоты')
+    _cleanlinessClass = titles.index('Класс чистоты') if 'Класс чистоты' in titles else titles.index('Класс чистоты по СанПиН 2.1.3.2630-10')
     _temperature = titles.index('Расчетная температура воздуха в помещении')
     _area = titles.index('Площадь, м²')
     _height = titles.index('Высота, м')
@@ -89,6 +89,8 @@ if src_spaces:
     _multiplicityInflow = titles.index('Кратность притока, N/ч')
     _multiplicityOutflow = titles.index('Кратность вытяжки, N/ч')
     _note = titles.index('Примечание')
+    _outflow = titles.index('Переток') if 'Переток' in titles else None
+    _heat = titles.index('ΣQ Суммарные теплопоступления') if 'ΣQ Суммарные теплопоступления' in titles else None
 
 
     raws = [x.split('\t') for x in src_spaces.split('\n')][1:]                 # raws
@@ -108,9 +110,13 @@ if src_spaces:
     multiplicityInflow = [x[_multiplicityInflow] for x in raws]
     multiplicityOutflow = [x[_multiplicityOutflow] for x in raws]
     note = [x[_note] for x in raws]
+    outflow = [x[_outflow] for x in raws] if _outflow else []
+    heat = [x[_heat] for x in raws] if _heat else []
 
 
     spaces = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MEPSpaces).WhereElementIsNotElementType().ToElements()
+
+    teplo = False
 
     report = []
     existNums = []
@@ -122,19 +128,27 @@ if src_spaces:
             sA = supplyAirFlow[index]
             eA = exhaustAirFlow[index]
             s = s1 = s2 = ''
-            if sA and sA != '0':
-                s1 = '{}: +{}'.format(supplySystem[index], sA)
-            if eA and eA != '0':
-                s2 = '{}: -{}'.format(exhaustSystem[index], eA)
+            if teplo:
+                s = 'Q={}кВт'.format(float(heat[index]) / 1000).replace('.', ',')
+            else:
+                if sA and sA != '0':
+                    s1 = '{}: +{}'.format(supplySystem[index], sA)
+                if eA and eA != '0':
+                    s2 = '{}: -{}'.format(exhaustSystem[index], eA)
             if s1 and s2:
                 s = s1 + ', ' + s2
             else:
                 s = (s1 or s2) or s
-            s += '\n{}, {}, {}'.format(cleanlinessClass[index], supplyDevices[index], exhaustDevices[index]).replace(' ,', '').replace('\n, ', '\n')  # Доп инфа
+            if not teplo:
+                s += '\n{}, {}, {}'.format('Класс ' + cleanlinessClass[index] if cleanlinessClass[index] else '', supplyDevices[index], exhaustDevices[index]).replace(' ,', '').replace('\n, ', '\n')
             if s[-1] == ' ':
                 s = s[:-1]
             if s[-1] == ',':
                 s = s[:-1]
+            current_outflow = int(outflow[index]) if outflow else 0
+            if current_outflow:
+                space.LookupParameter('ADSK_Количество') and space.LookupParameter('ADSK_Количество').Set(abs(current_outflow))
+                # s += '\nПереток: ' + str(current_outflow) + ' м³/ч'
             old_s = space.LookupParameter('Комментарии').AsString()
             old_s = old_s if old_s else ''
             if old_s != s:
@@ -225,18 +239,19 @@ if src_spaces:
         if name[index] == 'Итого ':
             el.LookupParameter('Кл 1').Set(number[index] if number[index] else '‎‎‎‎‎‎')
             el.LookupParameter('Кл 2').Set('‎' + ' ' * 115 + 'Итого')
-        if name[index] == 'Итого по группе помещений':
+        if 'Итого по группе помещений' in name[index]:
             el.LookupParameter('Кл 1').Set(number[index] if number[index] else '‎‎‎‎‎‎')
-            el.LookupParameter('Кл 2').Set('‎' + ' ' * 77 + 'Итого по группе помещений')
+            # el.LookupParameter('Кл 2').Set('‎' + ' ' * 77 + 'Итого по группе помещений')
+            el.LookupParameter('Кл 2').Set('‎' + ' ' * 60 + name[index])
         el.LookupParameter('Кл 3').Set(cleanlinessClass[index])
         el.LookupParameter('Кл 4').Set(temperature[index])
         el.LookupParameter('Кл 5').Set(area[index])
         el.LookupParameter('Кл 6').Set(height[index])
         el.LookupParameter('Кл 7').Set(volume[index])
-        el.LookupParameter('Кл 8').Set(multiplicityInflow[index])
-        el.LookupParameter('Кл 9').Set(multiplicityOutflow[index])
-        el.LookupParameter('Кл 10').Set(supplyAirFlow[index])
-        el.LookupParameter('Кл 11').Set(exhaustAirFlow[index])
+        el.LookupParameter('Кл 8').Set(multiplicityInflow[index] if multiplicityInflow[index] != '0' else '')
+        el.LookupParameter('Кл 9').Set(multiplicityOutflow[index] if multiplicityOutflow[index] != '0' else '')
+        el.LookupParameter('Кл 10').Set(supplyAirFlow[index] if supplyAirFlow[index] != '0' else '')
+        el.LookupParameter('Кл 11').Set(exhaustAirFlow[index] if exhaustAirFlow[index] != '0' else '')
         el.LookupParameter('Кл 12').Set(supplyDevices[index])
         el.LookupParameter('Кл 13').Set(exhaustDevices[index])
         el.LookupParameter('Кл 14').Set(supplySystem[index])
@@ -266,6 +281,8 @@ if src_hovs:
 
     for index, el in enumerate(els):
         el.LookupParameter('Ключевая1').Set(src_hovs[index].split('\t')[0])
+        # print(type(src_hovs[index].split('\t')))
+        # print(len(src_hovs[index].split('\t')))
         names = src_hovs[index].split('\t')[1]
         if names == 'Итого':
             names = '‎' + ' ' * 128 + 'Итого'

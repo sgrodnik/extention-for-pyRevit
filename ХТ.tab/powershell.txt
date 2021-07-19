@@ -1,0 +1,3 @@
+cmd /c mklink /D "C:\gd\pyrevit\SG.extension\ХТ.tab" "C:\Users\sg360\Documents\GitHub\extention-for-pyRevit\ХТ.tab" 
+
+из гитхаба в гуглдиск
